@@ -1,0 +1,207 @@
+:root {
+  --bg-dark: #07000e;
+  --purple-main: #a855f7;
+  --yellow-lima: #e2ff00;
+  --glass-effect: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(168, 85, 247, 0.2);
+  --error-red: #ff3333;
+}
+
+/* Animações */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.fade-in-page { animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.section-animada { animation: scaleIn 0.4s ease-out; }
+
+.perfil-container {
+  padding: 80px 5% 120px;
+  background: var(--bg-dark);
+  min-height: 100vh;
+  color: white;
+}
+
+.titulo-painel {
+  text-align: center;
+  font-size: 3.5rem;
+  margin-bottom: 80px;
+  background: linear-gradient(135deg, var(--yellow-lima), var(--purple-main));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+}
+
+.card-perfil-full {
+  display: grid;
+  grid-template-columns: 450px 1fr;
+  gap: 50px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Sidebar Estilizada */
+.sidebar-visual {
+  background: var(--glass-effect);
+  backdrop-filter: blur(30px);
+  padding: 60px 40px;
+  border-radius: 40px;
+  border: 1px solid var(--glass-border);
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative; /* Necessário para posicionar o menu de pontos */
+}
+
+/* Menu 3 Pontinhos - NOVO POSICIONAMENTO */
+.menu-contextual-absoluto {
+  position: absolute;
+  top: 25px;    /* Distância do topo do card */
+  right: 25px;  /* Distância da direita do card */
+  z-index: 10;
+}
+
+.btn-pontinhos-clean-v2 {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--yellow-lima);
+  font-size: 2.8rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.2s, opacity 0.2s;
+  outline: none;
+}
+
+.btn-pontinhos-clean-v2:hover {
+  transform: scale(1.2);
+  opacity: 0.8;
+}
+
+.dropdown-perfil-v2 {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  background: rgba(18, 0, 32, 0.98);
+  backdrop-filter: blur(15px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  width: 190px;
+  z-index: 100;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+  overflow: hidden;
+  animation: scaleIn 0.2s forwards;
+}
+
+.dropdown-perfil-v2 button {
+  width: 100%;
+  padding: 15px 20px;
+  background: transparent;
+  border: none;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.dropdown-perfil-v2 button:hover {
+  background: rgba(168, 85, 247, 0.2);
+  color: var(--yellow-lima);
+}
+
+.btn-sair-dropdown {
+  color: var(--error-red) !important;
+  border-bottom: none !important;
+}
+
+/* Foto e Infos */
+.foto-perfil-wrapper img {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 30px;
+  border: none !important; /* Sem borda amarela */
+}
+
+.nome-resumo {
+  font-size: 2.8rem;
+  margin-bottom: 20px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.tag-status-neon {
+  color: var(--yellow-lima);
+  border: 1px solid var(--yellow-lima);
+  padding: 10px 30px;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+/* Painel de Conteúdo */
+.conteudo-dados {
+  background: var(--glass-effect);
+  padding: 70px;
+  border-radius: 40px;
+  border-left: 1px solid var(--glass-border);
+}
+
+.header-dados {
+  margin-bottom: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.header-dados h3 { font-size: 2.4rem; color: #fff; }
+
+.id-texto-destaque { color: var(--yellow-lima); font-weight: bold; }
+
+.dados-pessoais-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+}
+
+.dado-bloco label {
+  color: var(--purple-main);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 3px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.dado-bloco p { font-size: 1.8rem; font-weight: 300; }
+
+.dado-bloco-full { grid-column: span 2; }
+
+.caixa-texto-treino-premium {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  color: var(--yellow-lima);
+  font-size: 1.3rem;
+  line-height: 1.6;
+}
+
+.msg-vazia-container {
+  padding: 60px;
+  text-align: center;
+  border: 1px dashed var(--glass-border);
+  border-radius: 20px;
+}

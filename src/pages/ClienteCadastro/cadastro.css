@@ -1,0 +1,168 @@
+
+
+.cadastro-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #2e1065 0%, #0f0028 100%);
+  padding: 60px 20px;
+}
+
+.form-cadastro {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(15px);
+  padding: 80px 40px 40px 40px;
+  border-radius: 20px;
+  border: 1px solid rgba(110, 66, 193, 0.3);
+  width: 100%;
+  max-width: 600px; /* Um pouco mais largo que o login por ter mais campos */
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Reutilizando a logo na pontinha */
+
+.cadastro-logo-overlap {
+  position: absolute;
+  top: -45px;
+  left: -45px;
+  width: 100px;
+  height: 100px;
+  background: #1b004b;
+  border: 2px solid #9b6eff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  
+  /* Efeito de transição suave */
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+.cadastro-logo-overlap:hover {
+  /* Gira 360 graus e dá um leve destaque */
+  transform: rotate(360deg);
+  box-shadow: 0 0 20px rgba(155, 110, 255, 0.6);
+  border-color: #ffffff;
+}
+
+.cadastro-logo-overlap img {
+  width: 65px;
+  /* Garante que a imagem acompanhe o brilho se necessário */
+  transition: filter 0.3s ease;
+}
+
+.cadastro-logo-overlap:hover img {
+  filter: brightness(1.2);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #ffffff !important; /* Usamos !important para garantir que nada mude essa cor */
+  font-weight: 600;
+  font-size: 14px;
+  text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.5); /* Sombra preta para destacar do fundo roxo */
+}
+
+.form-group input {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #4b2c85;
+  background: rgba(15, 0, 40, 0.8);
+  color: white;
+  outline: none;
+}
+
+/* Estilo para o grupo de Checkboxes */
+.checkbox-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.checkbox-group input {
+  cursor: pointer;
+  accent-color: #9b6eff; /* Muda a cor do "check" */
+  color: #e9d5ff;
+}
+
+.btn-cadastrar {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #6e42c1, #9b6eff);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.status-message {
+  text-align: center;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(240deg); /* Deixa o ícone roxo/claro */
+  cursor: pointer;
+}
+
+.input-file-custom {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+/* Cria um botão falso bonitão */
+.label-file-custom {
+  display: inline-block;
+  padding: 10px 20px;
+  background: rgba(168, 85, 247, 0.3) !important; /* Roxo semi-transparente */
+  border: 1px dashed #c084fc;
+  border-radius: 8px;
+  color: #ffffff !important; /* Texto branco puro */
+  text-align: center;
+  cursor: pointer;
+  transition: 0.3s;
+  font-weight: 500;
+}
+
+.label-file-custom:hover {
+  background: rgba(168, 85, 247, 0.5) !important;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+}
+
+.form-group span {
+  color: #ffffff !important;
+  font-size: 12px;
+  margin-top: 5px;
+  opacity: 0.9;
+}

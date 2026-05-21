@@ -1,0 +1,88 @@
+{
+  "cliente": [
+    {
+      "id": "ebc9",
+      "nome": "paulo",
+      "email": "paulooliveira@gmail.com",
+      "senha": "ph26112008",
+      "telefone": "11987654321",
+      "idade": 16,
+      "sexo": "M",
+      "dataNascimento": "2008-11-26"
+    },
+    {
+      "id": "newid",
+      "nome": "João Silva",
+      "email": "joao@example.com",
+      "senha": "senha456",
+      "telefone": "11912345678",
+      "idade": 30,
+      "sexo": "M",
+      "dataNascimento": "1993-05-15"
+    }
+  ],
+  "prescricao": [
+    {
+      "id": "pres1",
+      "idCliente": "ebc9",
+      "dataCriacao": "2025-10-01",
+      "peso": 65.5,
+      "altura": 1.75,
+      "notes": "Treino leve, foco em resistência"
+    }
+  ],
+  "registro": [
+    {
+      "id": "reg1",
+      "idCliente": "ebc9",
+      "idPrescricao": "pres1",
+      "dataRegistro": "2025-10-20"
+    }
+  ],
+  "sono": [
+    {
+      "id": "sono1",
+      "idRegistro": "reg1",
+      "data": "2025-10-20",
+      "horasDormidas": 7.5,
+      "qualidadeSono": "Boa"
+    }
+  ],
+  "alimentacao": [
+    {
+      "id": "ali1",
+      "idRegistro": "reg1",
+      "data": "2025-10-20",
+      "tipoRefeicao": "Almoço",
+      "calorias": 600
+    }
+  ],
+  "atividade_fisica": [
+    {
+      "id": "af1",
+      "idRegistro": "reg1",
+      "data": "2025-10-20",
+      "tipo": "Corrida",
+      "duracao": 30,
+      "caloriasGastas": 250
+    }
+  ],
+  "saude_mental": [
+    {
+      "id": "sm1",
+      "idRegistro": "reg1",
+      "data": "2025-10-20",
+      "horario": "14:00",
+      "scoreBemestar": 8
+    }
+  ],
+  "login_cliente": [
+    {
+      "id": "login1",
+      "idCliente": "ebc9",
+      "login": "paulo123",
+      "senhaHash": "hashed_ph26112008"
+    }
+  ],
+  "categoria": []
+}

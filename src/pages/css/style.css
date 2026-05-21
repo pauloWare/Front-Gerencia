@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+*{
+  color: white;
+  font-family: 'Poppins', sans-serif;
+}
+
+body{
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(to right bottom, rgb(27, 0, 75), rgb(249, 136, 255));
+}
+
+/* HEADER */
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+    background-color: rgba(15, 0, 40, 0.8);
+    border-bottom: 1px solid white;
+    padding: 0 10px; /* pequeno respiro (ou 0 se quiser colado total) */
+}
+
+
+/* NAV */
+nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.abas {
+    position: relative;
+    text-decoration: none;
+    font-size: 20px;
+    color: white;
+    padding: 0 15px;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+/* linha escondida */
+.abas::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 0%;
+    height: 3px;
+    background: linear-gradient(90deg, #9b6eff, #c084fc);
+    transition: width 0.3s ease;
+}
+
+/* hover */
+.abas:hover {
+    color: #c084fc;
+}
+
+/* animação da linha */
+.abas:hover::after {
+    width: 100%;
+}
+
+
+
+/* BOTÃO PADRÃO */
+button {
+  width: 60%;
+  padding: 14px 0;
+  margin-top: 20px;
+  background-color: #6e42c1;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 5px 10px rgba(110, 66, 193, 0.6);
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #ffd6fb;
+  box-shadow: 0 8px 18px rgba(136, 85, 255, 0.8);
+}
+
+
+
+.spa{
+  text-decoration: none;
+  color: white;
+}
+
+.Teclogo {
+  height: 165px;
+  width: 195px;
+  margin-left: 10px;
+}
+
+/* social */
+
+.social {
+  text-align: center;
+  margin: 80px auto;
+  color: white;
+}

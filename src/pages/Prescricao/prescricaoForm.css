@@ -1,0 +1,125 @@
+.container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background: linear-gradient(135deg, #6a2c9f, #4b1c71);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(75, 28, 113, 0.2);
+  color: #ffffff;
+  font-family: 'Arial', sans-serif;
+}
+
+.form-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.prescription-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section {
+  background: linear-gradient(135deg, #f3e8ff, #e0cfff);
+  border-radius: 12px;
+  padding: 16px;
+  color: #333;
+}
+
+.section-title {
+  color: #4b1c71;
+  font-size: 1.2rem;
+  margin-bottom: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Uma coluna por padrão */
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-weight: bold;
+  color: #4b1c71;
+  font-size: 1rem;
+}
+
+.input, textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #6a2c9f;
+  font-size: 1rem;
+  box-sizing: border-box; /* Garante que padding não altere a largura */
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.input:focus, textarea:focus {
+  border-color: #4b1c71;
+  box-shadow: 0 0 5px rgba(75, 28, 113, 0.5);
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.button {
+  background-color: #4b1c71;
+  color: #fff;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  width: 200px;
+  align-self: center; /* Centraliza o botão */
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.button:hover {
+  background-color: #6a2c9f;
+  transform: scale(1.05);
+}
+
+/* Responsividade */
+@media (min-width: 600px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr); /* Duas colunas em telas maiores */
+  }
+  .form-group:nth-child(3) {
+    grid-column: span 2; /* Notas ocupam duas colunas */
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    margin: 20px;
+    padding: 15px;
+  }
+  .section {
+    padding: 12px;
+  }
+  .button {
+    width: 100%;
+    max-width: 200px;
+  }
+  .form-group {
+    gap: 4px;
+  }
+  .input, textarea {
+    font-size: 0.9rem;
+  }
+  .form-grid {
+    grid-template-columns: 1fr; /* Uma coluna em telas pequenas */
+  }
+}
