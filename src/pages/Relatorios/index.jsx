@@ -37,8 +37,8 @@ export default function Relatorios() {
   const receitaMes = dashboard?.receitaMes ?? 0;
   const pendentes = dashboard?.mensalidadesPendentes ?? 0;
   const frequencia = dashboard?.frequenciaHoje ?? 0;
-  const ativos = alunos.filter(a => a.ativo !== false).length;
-  const inativos = alunos.filter(a => a.ativo === false).length;
+  const ativos = alunos.filter(a => a.situacao !== "INATIVO").length;
+  const inativos = alunos.filter(a => a.situacao === "INATIVO").length;
   const totalFunc = funcionarios.length;
 
   return (
