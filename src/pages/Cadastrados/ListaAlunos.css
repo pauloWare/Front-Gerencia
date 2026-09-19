@@ -1,0 +1,183 @@
+.consulta-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background: linear-gradient(135deg, #6a2c9f, #4b1c71); /* Gradiente roxo suave */
+  border-radius: 16px;
+  box-shadow: 0px 8px 24px rgba(75, 28, 113, 0.2);
+}
+
+.consulta-container h2 {
+  text-align: center;
+  color: #ffffff;
+  font-size: 2rem;
+  margin-bottom: 30px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.aluno-item {
+  background: linear-gradient(135deg, #f3e8ff, #e0cfff); /* Roxo claro gradiente, em vez de branco */
+  border-radius: 16px;
+  box-shadow: 0px 6px 20px rgba(75, 28, 113, 0.15); /* Sombra roxa */
+  padding: 24px;
+  margin-bottom: 24px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative; /* Para dropdown */
+}
+
+.aluno-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 12px 32px rgba(75, 28, 113, 0.25);
+}
+
+.aluno-info {
+  flex: 2;
+  padding-right: 24px;
+}
+
+.aluno-profile {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.aluno-foto {
+  text-align: center;
+}
+
+.aluno-item p {
+  font-size: 1rem;
+  margin: 8px 0;
+  color: #333;
+}
+
+.aluno-item p strong {
+  color: #4b1c71;
+}
+
+.kebab-menu {
+  cursor: pointer;
+  font-size: 24px;
+  color: #4b1c71;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  transition: color 0.3s;
+}
+
+.kebab-menu:hover {
+  color: #6a2c9f;
+}
+
+.dropdown {
+  position: absolute;
+  top: 40px;
+  right: 16px;
+  background: linear-gradient(135deg, #f3e8ff, #e0cfff); /* Gradiente roxo claro para harmonia */
+  border-radius: 12px; /* Arredondado maior */
+  box-shadow: 0px 6px 20px rgba(75, 28, 113, 0.2); /* Sombra roxa suave */
+  z-index: 10;
+  overflow: hidden;
+  transition: opacity 0.3s ease, transform 0.3s ease; /* Animação mais suave */
+  opacity: 0;
+  transform: translateY(-10px);
+  width: 180px; /* Largura fixa para melhor recorte */
+  padding: 8px 0; /* Espaço vertical */
+}
+
+.dropdown.open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dropdown button {
+  display: block;
+  width: 100%;
+  padding: 16px 24px; /* Mais espaçamento para não ficar colado */
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 1rem;
+  color: #4b1c71;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  position: relative;
+}
+
+.dropdown button:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: rgba(75, 28, 113, 0.1); /* Divisor sutil */
+}
+
+.dropdown button:hover {
+  background-color: #d1b3ff; /* Roxo mais escuro ao hover */
+  color: #ffffff;
+}
+
+.dropdown button.edit {
+  color: #4b1c71;
+}
+
+.dropdown button.prescricao {
+  color: #4b1c71;
+}
+
+.dropdown button.delete {
+  color: #e74c3c;
+}
+
+.aluno-item img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #6a2c9f;
+  box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .aluno-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .aluno-info {
+    padding-right: 0;
+    margin-bottom: 20px;
+  }
+
+  .aluno-profile {
+    width: 100%;
+  }
+
+  .kebab-menu {
+    top: auto;
+    bottom: 16px;
+    right: 50%;
+    transform: translateX(50%);
+  }
+
+  .dropdown {
+    top: auto;
+    bottom: 40px;
+    right: 50%;
+    transform: translateX(50%) translateY(10px);
+    width: 80%; /* Ajuste para mobile */
+  }
+
+  .dropdown.open {
+    transform: translateX(50%) translateY(0);
+  }
+}

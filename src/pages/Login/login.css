@@ -1,179 +1,182 @@
-/* LOGO */
-.login-logo img {
-  width: 150px; /* Ajuste conforme o tamanho da sua logo */
-  margin-bottom: 20px;
-  filter: drop-shadow(0 0 10px rgba(110, 66, 193, 0.5));
-}
-
-/* INPUT GROUP PARA ALINHAMENTO */
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-
-/* BOTÃO ENTRAR CENTRALIZADO */
-.btn-entrar {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #6e42c1, #9b6eff);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 16px;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: 0.3s;
-}
-
-.btn-entrar:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(110, 66, 193, 0.4);
-}
-
-/* TEXTO DE CADASTRO COM LINK */
-.signup-text {
-  text-align: center;
-  margin-top: 20px;
-  color: #e0d7ff;
-  font-size: 14px;
-}
-
-.signup-text span {
-  color: #9b6eff;
-  font-weight: bold;
-  cursor: pointer;
-  text-decoration: underline;
-  transition: 0.3s;
-}
-
-.signup-text span:hover {
-  color: #c084fc;
-}
-
 .login-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, #2e1065 0%, #0f0028 100%);
-  padding: 20px;
+  background: radial-gradient(circle at center, var(--primary-dark) 0%, #0c001f 100%);
+  padding: 24px;
+  font-family: var(--font-sans);
 }
 
-.main-content {
-  color: white;
-  font-size: 32px;
-  margin-bottom: 30px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+.login-container h1 {
+  color: #ffffff;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 24px;
 }
 
-/* 1. AUMENTANDO O FORM */
+/* 1. CONTAINER DO FORM */
 .form-login {
   position: relative; /* ESSENCIAL para a logo se basear no form */
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(15px);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
   padding: 80px 40px 40px 40px;
-  border-radius: 20px;
-  border: 1px solid rgba(110, 66, 193, 0.3);
-  
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(139, 85, 204, 0.25);
   width: 100%;
-  max-width: 500px; /* Aumentado de 400px para 500px */
+  max-width: 480px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg);
 }
 
 /* 2. LOGO NA PONTINHA ESQUERDA (OVERLAP) */
 .login-logo-overlap {
   position: absolute;
-  top: -35px;   /* Metade para fora para cima */
-  left: -35px;  /* Metade para fora para a esquerda */
-  width: 80px;  /* Tamanho menor para o ícone de canto */
-  height: 80px;
+  top: -40px;   /* Metade para fora para cima */
+  left: -40px;  /* Metade para fora para a esquerda */
+  width: 90px;  /* Tamanho menor para o ícone de canto */
+  height: 90px;
   background: #1b004b; /* Fundo sólido para destacar da borda */
-  border: 2px solid #9b6eff;
+  border: 2px solid var(--primary-light);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: 0.3s ease;
+  transition: var(--transition);
   z-index: 10;
+  box-shadow: var(--shadow-md);
 }
 
 .login-logo-overlap img {
-  width: 80px;
+  width: 90px;
   height: auto;
 }
 
 .login-logo-overlap:hover {
-  transform: scale(1.1) rotate(-10deg);
-  box-shadow: 0 0 20px rgba(155, 110, 255, 0.6);
-}
-
-/* Centralizando o título que agora está maior */
-.main-content {
-  text-align: center;
-  margin-top: 10px;
-  font-size: 28px; /* Reduzir levemente ajuda na elegância */
-  margin-bottom: 20px;
+  transform: scale(1.08) rotate(-8deg);
+  box-shadow: 0 0 25px rgba(139, 85, 204, 0.6);
 }
 
 .form-login label {
-  color: #c084fc;
+  color: var(--primary-light);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .form-login input {
-  padding: 12px 15px;
-  border-radius: 8px;
-  border: 1px solid #4b2c85;
-  background: rgba(15, 0, 40, 0.8);
-  color: white;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(139, 85, 204, 0.3);
+  background: rgba(15, 0, 40, 0.6);
+  color: #ffffff;
   outline: none;
-  transition: 0.3s;
+  font-size: 1rem;
+  transition: var(--transition);
 }
 
 .form-login input:focus {
-  border-color: #9b6eff;
-  box-shadow: 0 0 10px rgba(155, 110, 255, 0.4);
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(139, 85, 204, 0.25);
+  background: rgba(15, 0, 40, 0.8);
+}
+
+/* BOTÃO ENTRAR CENTRALIZADO */
+.btn-entrar {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: var(--transition);
+}
+
+.btn-entrar:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(92, 44, 144, 0.4);
+}
+
+/* TEXTO DE CADASTRO COM LINK */
+.signup-text {
+  text-align: center;
+  margin-top: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.signup-text span {
+  color: var(--primary-light);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: var(--transition);
+}
+
+.signup-text span:hover {
+  color: #c084fc;
+}
+
+.login-message {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .bl {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin-top: 10px;
 }
 
 .bl button {
   padding: 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: none;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
-  transition: 0.3s;
+  transition: var(--transition);
 }
 
 .bl button[type="submit"] {
-  background: linear-gradient(135deg, #6e42c1, #9b6eff);
-  color: white;
+  background: var(--primary);
+  color: #ffffff;
 }
 
 .bl button[type="button"] {
   background: transparent;
-  color: #9b6eff;
-  border: 1px solid #9b6eff;
+  color: var(--primary-light);
+  border: 1.5px solid var(--primary-light);
 }
 
 .bl button:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.2);
-  background: rgba(155, 110, 255, 0.1); /* Um brilho roxo bem leve ao passar o mouse */
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+@media (max-width: 600px) {
+  .form-login {
+    padding: 60px 24px 32px 24px;
+  }
+  .login-logo-overlap {
+    top: -30px;
+    left: 20px;
+    width: 70px;
+    height: 70px;
+  }
+  .login-logo-overlap img {
+    width: 70px;
+  }
 }

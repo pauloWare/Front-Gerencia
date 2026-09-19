@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste Exato Mensalidades</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <style>
+    body { font-family: system-ui; padding: 20px; background: #f1f5f9; }
+    .log { padding: 12px; margin: 8px 0; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; font-size: 12px; font-family: monospace; }
+    .success { background: #d4edda; }
+    .error { background: #f8d7da; }
+    .info { background: #d1ecf1; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const api = axios.create({
+      baseURL: 'http://localhost:8080/api',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const FORMAS = [
+      { valor: 'DINHEIRO', rotulo: 'Dinheiro' },
+      { valor: 'CARTAO', rotulo: 'Cartão' },
+      { valor: 'PIX', rotulo: 'PIX' },
+    ];
+
+    const obterDataHoje = () => {
+      const h = new Date();
+      return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+    };
+
+    const somarDias = (dias) => {
+      const h = new Date();
+      h.setDate(h.getDate() + dias);
+      return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+    };
+
+    const statusExibicao = (m, hoje) => {
+      if (m.status === 'PAGA' || m.status === 'PAGO') return 'PAGA';
+      if (m.dataVencimento && m.dataVencimento < hoje) return 'ATRASADA';
+      return 'PENDENTE';
+    };
+
+    const rotuloStatus = {
+      PAGA: 'Paga',
+      PENDENTE: 'Pendente',
+      ATRASADA: 'Atrasada',
+    };
+
+    function TesteExato() {
+      const [mensalidades, setMensalidades] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [search, setSearch] = useState('');
+      const [filtro, setFiltro] = useState('TODAS');
+      const [pagamento, setPagamento] = useState(null);
+      const [formPagamento, setFormPagamento] = useState({ valor: '', dataPagamento: '', formaPagamento: '' });
+      const [salvando, setSalvando] = useState(false);
+      const [erroPagamento, setErroPagamento] = useState('');
+      const [logs, setLogs] = useState([]);
+
+      const hoje = obterDataHoje();
+      const limiteBreve = somarDias(7);
+
+      const addLog = (msg, type = 'info') => {
+        setLogs(prev => [...prev, { msg, type, time: new Date().toLocaleTimeString() }]);
+        console.log(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      };
+
+      useEffect(() => {
+        buscarMensalidades();
+      }, []);
+
+      const buscarMensalidades = async () => {
+        try {
+          addLog('Buscando mensalidades...', 'info');
+          const response = await api.get('/mensalidade');
+          setMensalidades(response.data);
+          addLog(`✅ ${response.data.length} mensalidades carregadas`, 'success');
+        } catch (error) {
+          addLog(`❌ Erro ao buscar mensalidades: ${error.message}`, 'error');
+          console.error('Erro ao buscar mensalidades:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const abrirPagamento = (m) => {
+        addLog(`Abrindo pagamento para ID ${m.id}`, 'info');
+        setPagamento(m);
+        setFormPagamento({ valor: m.valor != null ? m.valor : '', dataPagamento: hoje, formaPagamento: '' });
+        setErroPagamento('');
+      };
+
+      const fecharPagamento = () => {
+        addLog('Fechando modal', 'info');
+        setPagamento(null);
+        setFormPagamento({ valor: '', dataPagamento: '', formaPagamento: '' });
+      };
+
+      const registrarPagamento = async (e) => {
+        e.preventDefault();
+        addLog('Formulário submetido', 'info');
+        
+        if (!formPagamento.formaPagamento) {
+          setErroPagamento('Selecione a forma de pagamento.');
+          addLog('❌ Validação falhou', 'error');
+          return;
+        }
+        setSalvando(true);
+        setErroPagamento('');
+        try {
+          let usuarioResponsavel = '';
+          try {
+            const u = JSON.parse(localStorage.getItem('usuario') || '{}');
+            usuarioResponsavel = u?.nome || u?.email || '';
+            addLog(`Usuário responsável: ${usuarioResponsavel || '(vazio)'}`, 'info');
+          } catch { 
+            addLog('Usuário não disponível', 'info'); 
+          }
+          
+          addLog(`Enviando POST /mensalidade/${pagamento.id}/pagar...`, 'info');
+          await api.post(`/mensalidade/${pagamento.id}/pagar`, {
+            valor: Number(formPagamento.valor),
+            dataPagamento: formPagamento.dataPagamento,
+            formaPagamento: formPagamento.formaPagamento,
+            usuarioResponsavel,
+          });
+          
+          addLog('✅ Pagamento registrado com sucesso!', 'success');
+          fecharPagamento();
+          await buscarMensalidades();
+        } catch (error) {
+          addLog(`❌ Erro ao registrar pagamento: ${error.response?.data || error.message}`, 'error');
+          console.error('Erro ao registrar pagamento:', error);
+          setErroPagamento('❌ Erro ao registrar o pagamento.');
+        } finally {
+          setSalvando(false);
+        }
+      };
+
+      const comStatus = mensalidades.map(m => ({ ...m, statusExibicao: statusExibicao(m, hoje) }));
+
+      const filtered = comStatus.filter(m =>
+        (m.aluno?.nome && m.aluno.nome.toLowerCase().includes(search.toLowerCase())) ||
+        (m.statusExibicao && m.statusExibicao.toLowerCase().includes(search.toLowerCase())) ||
+        (m.aluno?.plano && m.aluno.plano.toLowerCase().includes(search.toLowerCase()))
+      ).filter(m => {
+        if (filtro === 'TODAS') return true;
+        if (filtro === 'VENCIDAS') return m.statusExibicao === 'ATRASADA';
+        if (filtro === 'BREVE') return m.venceBreve;
+        if (filtro === 'PENDENTES') return m.statusExibicao === 'PENDENTE';
+        if (filtro === 'PAGAS') return m.statusExibicao === 'PAGA';
+        return true;
+      });
+
+      if (loading) {
+        return <div className="log">Carregando...</div>;
+      }
+
+      return (
+        <div>
+          <h1>Teste EXATO do Código Mensalidades</h1>
+          
+          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '16px', maxHeight: '300px', overflow: 'auto' }}>
+            <h3>Logs do Sistema:</h3>
+            {logs.map((log, i) => (
+              <div key={i} className={`log ${log.type}`}>
+                <strong>[{log.time}]</strong> {log.msg}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+            <h3>Filtros:</h3>
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ padding: '8px', marginRight: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}
+            />
+            <select
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+              style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}
+            >
+              <option value="TODAS">Todas</option>
+              <option value="VENCIDAS">Vencidas</option>
+              <option value="PENDENTES">Pendentes</option>
+              <option value="PAGAS">Pagas</option>
+            </select>
+            <span style={{ marginLeft: '12px' }}>Total: {filtered.length}</span>
+          </div>
+
+          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px' }}>
+            <h2>Mensalidades ({filtered.length})</h2>
+            <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc' }}>
+                  <th>ID</th>
+                  <th>Aluno</th>
+                  <th>Vencimento</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(m => (
+                  <tr key={m.id}>
+                    <td>{m.id}</td>
+                    <td>{m.aluno?.nome || '-'}</td>
+                    <td>{m.dataVencimento}</td>
+                    <td><strong>R$ {Number(m.valor).toFixed(2)}</strong></td>
+                    <td>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        background: m.statusExibicao === 'PAGA' ? '#d4edda' : m.statusExibicao === 'ATRASADA' ? '#f8d7da' : '#fff3cd',
+                        color: m.statusExibicao === 'PAGA' ? '#155724' : m.statusExibicao === 'ATRASADA' ? '#721c24' : '#856404',
+                        fontSize: '12px'
+                      }}>
+                        {rotuloStatus[m.statusExibicao]}
+                      </span>
+                    </td>
+                    <td>
+                      {m.statusExibicao !== 'PAGA' ? (
+                        <button 
+                          onClick={() => abrirPagamento(m)}
+                          style={{ 
+                            padding: '6px 12px', 
+                            cursor: 'pointer',
+                            background: '#1a56db',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          Registrar pagamento
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          {m.formaPagamento ? `Pago via ${m.formaPagamento}` : 'Paga'}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modal */}
+          {pagamento && (
+            <div style={{ 
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', 
+              zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' 
+            }}>
+              <div style={{ 
+                background: '#fff', padding: '24px', borderRadius: '12px', 
+                maxWidth: '400px', width: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' 
+              }}>
+                <h3>Registrar Pagamento</h3>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 16px' }}>
+                  Aluno: <strong>{pagamento.aluno?.nome}</strong> — Vencimento: <strong>{pagamento.dataVencimento}</strong>
+                </p>
+                <form onSubmit={registrarPagamento}>
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
+                      Valor pago (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formPagamento.valor}
+                      onChange={(e) => setFormPagamento({ ...formPagamento, valor: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
+                      Data do pagamento
+                    </label>
+                    <input
+                      type="date"
+                      value={formPagamento.dataPagamento}
+                      onChange={(e) => setFormPagamento({ ...formPagamento, dataPagamento: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
+                      Forma de pagamento
+                    </label>
+                    <select
+                      value={formPagamento.formaPagamento}
+                      onChange={(e) => setFormPagamento({ ...formPagamento, formaPagamento: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                    >
+                      <option value="">Selecione a forma</option>
+                      {FORMAS.map(f => <option key={f.valor} value={f.valor}>{f.rotulo}</option>)}
+                    </select>
+                  </div>
+                  {erroPagamento && (
+                    <div style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '8px' }}>
+                      {erroPagamento}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                    <button 
+                      type="button" 
+                      onClick={fecharPagamento}
+                      style={{ 
+                        padding: '8px 16px', 
+                        background: '#64748b', 
+                        color: '#fff', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        cursor: 'pointer' 
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={salvando}
+                      style={{ 
+                        padding: '8px 16px', 
+                        background: salvando ? '#94a3b8' : '#1a56db', 
+                        color: '#fff', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        cursor: salvando ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      {salvando ? 'Salvando...' : 'Confirmar pagamento'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<TesteExato />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+/* HERO */
+.homeF {
+  position: relative;
+  background-image: url("../../assets/img/homeF.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+.homeF::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 400px; /* Aumentado para um fade mais suave */
+  z-index: 3;
+  pointer-events: none;
+
+  /* Uso de rgb moderno para aceitar o cálculo do Framer Motion */
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(27 0 75 / calc(var(--fade-opacity) * 0.8)) 50%,
+    rgb(27 0 75 / var(--fade-opacity)) 100%
+  );
+}
+
+.overlay {
+  position: relative;
+  top: -50px; /* sobe 50px */
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 35px 40px;
+  border-radius: 12px;
+  max-width: 600px;
+  color: white;
+}
+
+.homeF h1 {
+  font-size: 42px;
+  margin-bottom: 20px;
+}
+
+.homeF p {
+  font-size: 18px;
+  margin-bottom: 30px;
+}
+
+/* BOTÃO HERO */
+.hero-btn {
+  width: auto;
+  padding: 14px 35px;
+  background: linear-gradient(135deg, #6e42c1, #9b6eff);
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(110, 66, 193, 0.7);
+  transition: all 0.3s ease;
+}
+
+.hero-btn:hover {
+  transform: translateY(-3px);
+  background: linear-gradient(135deg, #8c62d9, #c084fc);
+}
+
+/* BENEFITS */
+.benefits {
+  height: 100vh;
+  position: relative;
+  
+  margin-top: -120px;
+  padding-top: 120px;
+
+  text-align: center;
+  color: white;
+  z-index: 2;
+  /* Fundo sólido que casa com o final do fade da Hero */
+  background-color: rgb(27, 0, 75); 
+
+  clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
+  padding-bottom: 85px; /* Aumentamos o respiro para o corte não pegar no texto */
+  z-index: 1;
+  
+}
+
+/* CONTAINER PAI DO SWIPER */
+.mySwiper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center; /* Centraliza o Swiper em si */
+}
+
+/* O SLIDE INDIVIDUAL */
+.slide {
+  width: 100% !important; /* Força o slide a ocupar a largura total do Swiper */
+  height: 100%;
+  display: flex;
+  align-items: center;    /* Centraliza verticalmente */
+  justify-content: center; /* Centraliza horizontalmente */
+  background-color: #1b004b; 
+}
+
+/* CONTAINER DE CONTEÚDO - O BLOCO QUE VOCÊ QUER DIMINUIR */
+.slide-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* Alinha o conteúdo ao topo do bloco */
+  
+  /* DIMINUINDO O ESPAÇO: */
+  gap: 10px;           /* Reduz a distância entre imagem e texto */
+  padding: 0;          /* Zera paddings internos que aumentam o bloco */
+}
+
+/* IMAGENS (Slide 1 e 2) */
+.slide-img {
+  width: 100%;       /* Tenta ocupar a largura total do container */
+  max-width: 900px;  /* 👈 Aumente esse valor para a imagem ficar mais larga */
+  max-height: 65vh;  /* 👈 Aumente aqui para ela ficar mais alta no PC */
+  object-fit: cover; /* Mantém o preenchimento bonito */
+  border-radius: 15px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s ease;
+}
+
+/* AJUSTE PARA A TABELA */
+.tabela-especifica {
+  
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;           /* Respiro interno para a tabela não colar na borda */
+}
+
+/* TEXTOS */
+.slide-content h2 {
+  font-size: clamp(28px, 5vw, 40px);
+  color: white;
+  margin: 0;               /* Remove margens que podem deslocar o centro */
+}
+
+.slide-content p {
+  font-size: 18px;
+  color: #ccc;
+  margin: 0;
+}
+
+
+/* AJUSTES ESPECÍFICOS PARA O SLIDE DA TABELA */
+.slide-tabela {
+  background-color: #1b004b; /* Cor base do seu tema */
+  background-image: none !important; 
+}
+
+.slide-tabela::before {
+  display: none; /* Tabela não precisa de overlay escuro */
+}
+
+.tabela-img {
+  max-width: 100%;
+  max-height: 60vh; /* Limita a altura para não empurrar o texto para fora */
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 0 30px rgba(110, 66, 193, 0.4);
+}
+
+/* SETAS SWIPER */
+.swiper-button-next, .swiper-button-prev {
+  color: white;
+  opacity: 0.4;
+  transition: 0.3s;
+}
+
+.swiper-button-next:hover, .swiper-button-prev:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+
+
+/* GALERIA */
+.gallery {
+  padding: 80px 20px;
+  background-color: rgb(27, 0, 75); /* Mantendo a cor base */
+  text-align: center;
+  margin-top: -80px; /* Puxa a galeria para dentro do corte da benefits */
+  padding-top: 150px; /* Garante que o título "Nosso Espaço" não seja cortado */
+  background-color: rgb(20, 0, 60); /* Um tom levemente mais escuro para dar profundidade */
+}
+
+.gallery h2 {
+  font-size: 36px;
+  color: white;
+  margin-bottom: 40px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.gallery-grid img {
+  width: 100%;
+  height: 300px; /* Altura fixa para manter o padrão */
+  object-fit: cover;
+  border-radius: 15px;
+  transition: all 0.4s ease;
+  filter: grayscale(40%) brightness(0.8); /* Vibe mais "street" */
+}
+
+.gallery-grid img:hover {
+  filter: grayscale(0%) brightness(1);
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(110, 66, 193, 0.4);
+}
+
+
+
+.social {
+  background: linear-gradient(135deg, #6e42c1, #4b2c85); /* Roxo mais profundo */
+  padding: 80px 20px;
+  margin-top: -60px; /* Sobe para encavalar na galeria */
+  transform: skewY(-2deg); /* Inclinação sutil para continuar o movimento */
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+}
+.social-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh; /* adapta à tela */
+  text-align: center;
+}
+
+/* Voltando o conteúdo ao normal para o texto não ficar torto */
+.social > * {
+  transform: skewY(2deg);
+}
+
+.social h2 {
+  font-size: 38px;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.social p {
+  font-size: 24px;
+  color: #9b6eff; /* Roxo vibrante */
+  font-weight: bold;
+  margin: 15px 0 30px;
+}
+
+.contact {
+  background-color: #0f0028; /* Fundo bem escuro */
+  padding: 120px 20px;
+  margin-top: -40px; /* Encaixe final */
+  position: relative;
+  z-index: 1;
+}
+
+.contact-container {
+  /* Efeito de vidro para dar profundidade sobre o fundo escuro */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(110, 66, 193, 0.2);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.contact-info h2 {
+  font-size: 32px;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.contact-info p {
+  font-size: 18px;
+  color: #ccc;
+  margin: 10px 0;
+}
+
+/* BOTÃO WHATSAPP ESTILIZADO */
+.whatsapp-btn {
+  background: #25d366; /* Cor oficial do Zap */
+  color: white;
+  padding: 16px 32px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: 0.3s;
+  box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3);
+}
+
+.whatsapp-btn:hover {
+  transform: scale(1.05);
+  background: #20ba5a;
+  box-shadow: 0 15px 30px rgba(37, 211, 102, 0.5);
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste Mensalidades - Simula React</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <style>
+    body { font-family: system-ui; padding: 20px; max-width: 1200px; margin: 0 auto; background: #f1f5f9; }
+    .test { padding: 16px; margin: 12px 0; border-radius: 8px; border: 1px solid #ddd; background: #fff; }
+    .success { background: #d4edda; border-color: #c3e6cb; }
+    .error { background: #f8d7da; border-color: #f5c6cb; }
+    .info { background: #d1ecf1; border-color: #bee5eb; }
+    button { padding: 8px 16px; margin: 4px; cursor: pointer; border: none; border-radius: 6px; background: #1a56db; color: #fff; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { background: #f8fafc; font-weight: 600; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 50; align-items: center; justify-content: center; }
+    .modal.open { display: flex; }
+    .modal-content { background: #fff; padding: 24px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+    .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .btn-secondary { background: #64748b; }
+  </style>
+</head>
+<body>
+  <h1>Teste Funcional - Página Mensalidades</h1>
+  <div id="app"></div>
+
+  <script>
+    const api = axios.create({
+      baseURL: 'http://localhost:8080/api',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    let mensalidades = [];
+    let mensalidadeSelecionada = null;
+
+    function log(id, msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = 'test ' + type;
+      div.innerHTML = `<strong>${id}</strong><br><pre>${msg}</pre>`;
+      document.getElementById('app').appendChild(div);
+    }
+
+    async function carregarMensalidades() {
+      try {
+        const resp = await api.get('/mensalidade');
+        mensalidades = resp.data;
+        renderTabela();
+        log('CARREGAR', `✅ ${mensalidades.length} mensalidades carregadas`, 'success');
+      } catch (e) {
+        log('CARREGAR', `❌ ${e.message}`, 'error');
+      }
+    }
+
+    function renderTabela() {
+      const tabela = document.createElement('table');
+      tabela.innerHTML = `
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Aluno</th>
+            <th>Vencimento</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${mensalidades.map(m => `
+            <tr>
+              <td>${m.id}</td>
+              <td>${m.aluno?.nome || 'N/A'}</td>
+              <td>${m.dataVencimento}</td>
+              <td>R$ ${Number(m.valor).toFixed(2)}</td>
+              <td><span style="padding: 4px 8px; border-radius: 4px; background: ${m.status === 'PAGA' ? '#d4edda' : '#fff3cd'}; color: ${m.status === 'PAGA' ? '#155724' : '#856404'}; font-size: 12px;">${m.status}</span></td>
+              <td>
+                ${m.status !== 'PAGA' ? 
+                  `<button onclick="abrirPagamento(${m.id})">Registrar Pagamento</button>` : 
+                  '<span style="color: #10b981;">✓ Paga</span>'}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      `;
+      document.getElementById('app').appendChild(tabela);
+    }
+
+    function abrirPagamento(id) {
+      const m = mensalidades.find(x => x.id === id);
+      if (!m) return;
+      
+      mensalidadeSelecionada = m;
+      const hoje = new Date().toISOString().split('T')[0];
+      
+      document.getElementById('modal').classList.add('open');
+      document.getElementById('modal-valor').value = m.valor || '';
+      document.getElementById('modal-data').value = hoje;
+      document.getElementById('modal-forma').value = '';
+      document.getElementById('modal-erro').textContent = '';
+      
+      log('MODAL', `✅ Modal aberto para mensalidade ${id}`, 'success');
+    }
+
+    function fecharPagamento() {
+      document.getElementById('modal').classList.remove('open');
+      mensalidadeSelecionada = null;
+    }
+
+    async function confirmarPagamento(e) {
+      e.preventDefault();
+      
+      const valor = document.getElementById('modal-valor').value;
+      const dataPagamento = document.getElementById('modal-data').value;
+      const formaPagamento = document.getElementById('modal-forma').value;
+      
+      if (!formaPagamento) {
+        document.getElementById('modal-erro').textContent = 'Selecione a forma de pagamento.';
+        return;
+      }
+      
+      try {
+        log('PAGAMENTO', `Enviando POST /mensalidade/${mensalidadeSelecionada.id}/pagar...`, 'info');
+        
+        const payload = {
+          valor: Number(valor),
+          dataPagamento,
+          formaPagamento,
+          usuarioResponsavel: 'admin@academia.com'
+        };
+        
+        const resp = await api.post(`/mensalidade/${mensalidadeSelecionada.id}/pagar`, payload);
+        
+        log('PAGAMENTO', `✅ SUCESSO!\nStatus: ${resp.status}\nMensalidade: ${resp.data.status}\nValor: ${resp.data.valor}\nForma: ${resp.data.formaPagamento}`, 'success');
+        
+        fecharPagamento();
+        await carregarMensalidades();
+        
+      } catch (e) {
+        log('PAGAMENTO', `❌ ERRO: ${e.response?.data || e.message}`, 'error');
+      }
+    }
+
+    // Modal HTML
+    document.getElementById('app').innerHTML += `
+      <div id="modal" class="modal">
+        <div class="modal-content">
+          <h3>Registrar Pagamento</h3>
+          <p id="modal-info" style="color: #64748b; font-size: 14px; margin-bottom: 16px;"></p>
+          <form onsubmit="confirmarPagamento(event)">
+            <div class="form-group">
+              <label>Valor pago (R$)</label>
+              <input type="number" id="modal-valor" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+              <label>Data do pagamento</label>
+              <input type="date" id="modal-data" required>
+            </div>
+            <div class="form-group">
+              <label>Forma de pagamento</label>
+              <select id="modal-forma" required>
+                <option value="">Selecione a forma</option>
+                <option value="DINHEIRO">Dinheiro</option>
+                <option value="CARTAO">Cartão</option>
+                <option value="PIX">PIX</option>
+              </select>
+            </div>
+            <div id="modal-erro" style="color: #ef4444; font-size: 14px;"></div>
+            <div class="btn-row">
+              <button type="button" class="btn-secondary" onclick="fecharPagamento()">Cancelar</button>
+              <button type="submit">Confirmar Pagamento</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    // Atualizar info do modal quando abrir
+    const originalAbrir = abrirPagamento;
+    abrirPagamento = function(id) {
+      originalAbrir(id);
+      const m = mensalidades.find(x => x.id === id);
+      if (m) {
+        document.getElementById('modal-info').innerHTML = 
+          `Aluno: <strong>${m.aluno?.nome || 'N/A'}</strong> — Vencimento: <strong>${m.dataVencimento}</strong>`;
+      }
+    };
+
+    // Inicializar
+    carregarMensalidades();
+  </script>
+</body>
+</html>

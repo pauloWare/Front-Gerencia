@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste Dialog Radix no Contexto</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script type="module">
+    import * as Dialog from 'https://unpkg.com/@radix-ui/react-dialog@1.0.5/dist/index.mjs';
+    window.RadixDialog = Dialog;
+    console.log('Radix Dialog carregado:', !!Dialog.Root);
+  </script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <style>
+    body { font-family: system-ui; padding: 20px; background: #f1f5f9; }
+    .log { padding: 12px; margin: 8px 0; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; font-size: 12px; }
+    .success { background: #d4edda; }
+    .error { background: #f8d7da; }
+    .info { background: #d1ecf1; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const DialogRoot = window.RadixDialog.Root;
+    const DialogContent = window.RadixDialog.Content;
+    const DialogTitle = window.RadixDialog.Title;
+    const DialogTrigger = window.RadixDialog.Trigger;
+
+    function TesteDialogRadix() {
+      const [open, setOpen] = useState(false);
+      const [logs, setLogs] = useState([]);
+
+      const addLog = (msg, type = 'info') => {
+        setLogs(prev => [...prev, { msg, type }]);
+        console.log(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      };
+
+      return (
+        <div>
+          <h1>Teste Dialog Radix UI - Contexto Real</h1>
+          
+          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '16px', maxHeight: '300px', overflow: 'auto' }}>
+            <h3>Logs:</h3>
+            {logs.map((log, i) => (
+              <div key={i} className={`log ${log.type}`}>
+                <strong>[{log.time || ''}]</strong> {log.msg}
+              </div>
+            ))}
+          </div>
+
+          <button 
+            onClick={() => { 
+              addLog('Botão clicado! Abrindo modal...', 'success');
+              setOpen(true); 
+            }}
+            style={{ 
+              padding: '8px 16px', 
+              background: '#1a56db', 
+              color: '#fff', 
+              border: 'none', 
+              borderRadius: '6px', 
+              cursor: 'pointer' 
+            }}
+          >
+            Abrir Modal com Radix
+          </button>
+
+          <DialogRoot open={open} onOpenChange={setOpen}>
+            <DialogContent style={{ 
+              background: '#fff', 
+              padding: '24px', 
+              borderRadius: '12px', 
+              maxWidth: '400px',
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}>
+              <DialogTitle style={{ marginBottom: '16px' }}>Modal com Radix Dialog</DialogTitle>
+              <p>Se você está vendo este modal, o Radix Dialog está funcionando!</p>
+              <p style={{ color: '#64748b', fontSize: '14px' }}>
+                Status: <strong>{open ? 'ABERTO' : 'FECHADO'}</strong>
+              </p>
+              <button 
+                onClick={() => { 
+                  addLog('Fechando modal...', 'info');
+                  setOpen(false); 
+                }}
+                style={{ 
+                  padding: '8px 16px', 
+                  background: '#64748b', 
+                  color: '#fff', 
+                  border: 'none', 
+                  borderRadius: '6px', 
+                  cursor: 'pointer',
+                  marginTop: '16px'
+                }}
+              >
+                Fechar
+              </button>
+            </DialogContent>
+          </DialogRoot>
+        </div>
+      );
+    }
+
+    // Esperar Radix carregar
+    const checkRadix = setInterval(() => {
+      if (window.RadixDialog && window.RadixDialog.Root) {
+        clearInterval(checkRadix);
+        console.log('Renderizando com Radix...');
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TesteDialogRadix />);
+      }
+    }, 100);
+  </script>
+</body>
+</html>

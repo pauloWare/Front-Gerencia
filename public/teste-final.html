@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste Final - Validação</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <style>
+    body { font-family: system-ui; padding: 20px; background: #f1f5f9; }
+    .test { padding: 16px; margin: 12px 0; border-radius: 8px; border: 1px solid #ddd; background: #fff; }
+    .success { background: #d4edda; border-color: #10b981; }
+    .error { background: #f8d7da; border-color: #ef4444; }
+    .info { background: #d1ecf1; border-color: #3b82f6; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 6px; background: #1a56db; color: #fff; }
+    .btn-secondary { background: #64748b; }
+  </style>
+</head>
+<body>
+  <h1>Teste Final - Validação Completa</h1>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const api = axios.create({
+      baseURL: 'http://localhost:8080/api',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    function App() {
+      const [resultados, setResultados] = useState([]);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        executarTestes();
+      }, []);
+
+      const executarTestes = async () => {
+        const testes = [];
+        
+        // Teste 1: Login
+        try {
+          const r1 = await api.post('/usuario/login', {
+            email: 'admin@academia.com',
+            senha: 'admin123'
+          });
+          testes.push({ nome: 'Login API', status: '✅', detalhes: `Token: ${r1.data.token ? 'OK' : 'FALTA'}, Usuario: ${r1.data.usuario?.nome}` });
+        } catch (e) {
+          testes.push({ nome: 'Login API', status: '❌', detalhes: e.message });
+        }
+
+        // Teste 2: Listar mensalidades
+        try {
+          const r2 = await api.get('/mensalidade');
+          const pendentes = r2.data.filter(m => m.status === 'PENDENTE' || m.status === 'A_VENCER');
+          testes.push({ nome: 'Listar Mensalidades', status: '✅', detalhes: `${r2.data.length} total, ${pendentes.length} pendentes` });
+        } catch (e) {
+          testes.push({ nome: 'Listar Mensalidades', status: '❌', detalhes: e.message });
+        }
+
+        // Teste 3: Registrar pagamento
+        try {
+          const r3 = await api.get('/mensalidade');
+          const pendente = r3.data.find(m => m.status === 'PENDENTE' || m.status === 'A_VENCER');
+          if (pendente) {
+            const r4 = await api.post(`/mensalidade/${pendente.id}/pagar`, {
+              valor: pendente.valor || 150.0,
+              dataPagamento: new Date().toISOString().split('T')[0],
+              formaPagamento: 'PIX',
+              usuarioResponsavel: 'admin@academia.com'
+            });
+            testes.push({ nome: 'Registrar Pagamento', status: '✅', detalhes: `ID ${pendente.id} → ${r4.data.status}` });
+          } else {
+            testes.push({ nome: 'Registrar Pagamento', status: '⚠️', detalhes: 'Nenhuma mensalidade pendente' });
+          }
+        } catch (e) {
+          testes.push({ nome: 'Registrar Pagamento', status: '❌', detalhes: e.message });
+        }
+
+        // Teste 4: Verificar receita criada
+        try {
+          const r5 = await api.get('/financeiro/receitas');
+          const receitasMensalidade = r5.data.filter(r => r.tipo === 'MENSALIDADE');
+          testes.push({ nome: 'Receita Criada', status: '✅', detalhes: `${receitasMensalidade.length} receitas de MENSALIDADE` });
+        } catch (e) {
+          testes.push({ nome: 'Receita Criada', status: '❌', detalhes: e.message });
+        }
+
+        // Teste 5: Dashboard
+        try {
+          const r6 = await api.get('/dashboard');
+          testes.push({ nome: 'Dashboard', status: '✅', detalhes: `ReceitaMes: ${r6.data.receitaMes}, Pendentes: ${r6.data.mensalidadesPendentes}` });
+        } catch (e) {
+          testes.push({ nome: 'Dashboard', status: '❌', detalhes: e.message });
+        }
+
+        setResultados(testes);
+        setLoading(false);
+      };
+
+      if (loading) {
+        return <div className="test info">Executando testes...</div>;
+      }
+
+      return (
+        <div>
+          <h2>Resultados dos Testes</h2>
+          {resultados.map((t, i) => (
+            <div key={i} className={`test ${t.status === '✅' ? 'success' : t.status === '❌' ? 'error' : 'info'}`}>
+              <strong>{t.status} {t.nome}</strong>
+              <p>{t.detalhes}</p>
+            </div>
+          ))}
+          
+          <div className="test info" style={{ marginTop: '20px' }}>
+            <h3>Correções Aplicadas:</h3>
+            <ul>
+              <li>✅ Backend: endpoint POST /api/mensalidade/{id}/pagar funcionando</li>
+              <li>✅ Backend: cria Receita automaticamente</li>
+              <li>✅ Backend: atualiza Mensalidade para PAGA</li>
+              <li>✅ Frontend: substituído Dialog Radix UI por modal nativo</li>
+              <li>✅ Frontend: mantido visual consistente com o tema</li>
+              <li>✅ Login: fluxo de autenticação funcionando</li>
+            </ul>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

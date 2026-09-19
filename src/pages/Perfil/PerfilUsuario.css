@@ -22,7 +22,7 @@
 .section-animada { animation: scaleIn 0.4s ease-out; }
 
 .perfil-container {
-  padding: 80px 5% 120px;
+  padding: 10px 5% 120px;
   background: var(--bg-dark);
   min-height: 100vh;
   color: white;
@@ -51,7 +51,7 @@
   background: var(--glass-effect);
   backdrop-filter: blur(30px);
   padding: 60px 40px;
-  border-radius: 40px;
+  border-radius: 30px;
   border: 1px solid var(--glass-border);
   height: fit-content;
   display: flex;
@@ -154,7 +154,7 @@
 /* Painel de Conteúdo */
 .conteudo-dados {
   background: var(--glass-effect);
-  padding: 70px;
+  padding: 40px;
   border-radius: 40px;
   border-left: 1px solid var(--glass-border);
 }

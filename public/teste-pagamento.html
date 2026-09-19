@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste Funcional - Pagamento</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <style>
+    body { font-family: system-ui; padding: 20px; max-width: 900px; margin: 0 auto; background: #f1f5f9; }
+    .test { padding: 16px; margin: 12px 0; border-radius: 8px; border: 1px solid #ddd; background: #fff; }
+    .success { background: #d4edda; border-color: #c3e6cb; }
+    .error { background: #f8d7da; border-color: #f5c6cb; }
+    .info { background: #d1ecf1; border-color: #bee5eb; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 6px; background: #1a56db; color: #fff; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Teste Funcional - Sistema Academia</h1>
+  <div id="resultado"></div>
+
+  <script>
+    const api = axios.create({
+      baseURL: 'http://localhost:8080/api',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    function log(id, msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = 'test ' + type;
+      div.innerHTML = `<strong>${id}</strong><br><pre>${msg}</pre>`;
+      document.getElementById('resultado').appendChild(div);
+    }
+
+    async function testarLogin() {
+      try {
+        log('TESTE LOGIN', 'Testando endpoint de login...', 'info');
+        const resp = await api.post('/usuario/login', {
+          email: 'admin@academia.com',
+          senha: 'admin123'
+        });
+        log('TESTE LOGIN', `✅ OK\nStatus: ${resp.status}\nToken: ${resp.data.token ? 'Presente' : 'Ausente'}\nUsuario: ${resp.data.usuario?.nome || 'N/A'}`, 'success');
+        return resp.data;
+      } catch (e) {
+        log('TESTE LOGIN', `❌ ERRO\nStatus: ${e.response?.status}\n${JSON.stringify(e.response?.data || e.message, null, 2)}`, 'error');
+        return null;
+      }
+    }
+
+    async function testarPagamento() {
+      try {
+        log('TESTE PAGAMENTO', '1. Buscando mensalidades...', 'info');
+        const r1 = await api.get('/mensalidade');
+        const pendentes = r1.data.filter(m => m.status === 'PENDENTE' || m.status === 'A_VENCER');
+        log('TESTE PAGAMENTO', `✅ Mensalidades encontradas: ${r1.data.length}\nPendentes: ${pendentes.length}`, 'success');
+
+        if (pendentes.length === 0) {
+          log('TESTE PAGAMENTO', '⚠️ Nenhuma mensalidade pendente para testar', 'info');
+          return;
+        }
+
+        const mensalidade = pendentes[0];
+        log('TESTE PAGAMENTO', `2. Testando pagamento da mensalidade ID: ${mensalidade.id}\nAluno: ${mensalidade.aluno?.nome || 'N/A'}\nValor: ${mensalidade.valor}`, 'info');
+
+        const payload = {
+          valor: mensalidade.valor || 150.0,
+          dataPagamento: new Date().toISOString().split('T')[0],
+          formaPagamento: 'PIX',
+          usuarioResponsavel: 'admin@academia.com'
+        };
+
+        log('TESTE PAGAMENTO', `3. Enviando POST /mensalidade/${mensalidade.id}/pagar\nPayload: ${JSON.stringify(payload, null, 2)}`, 'info');
+
+        const r2 = await api.post(`/mensalidade/${mensalidade.id}/pagar`, payload);
+        log('TESTE PAGAMENTO', `✅ PAGAMENTO OK\nStatus: ${r2.status}\nMensalidade: ${r2.data.status}\nValor: ${r2.data.valor}\nForma: ${r2.data.formaPagamento}\nData Pag: ${r2.data.dataPagamento}`, 'success');
+
+        log('TESTE PAGAMENTO', '4. Verificando se receita foi criada...', 'info');
+        const r3 = await api.get('/financeiro/receitas');
+        const receitasMensalidade = r3.data.filter(r => r.tipo === 'MENSALIDADE');
+        log('TESTE PAGAMENTO', `✅ Receitas encontradas: ${r3.data.length}\nReceitas MENSALIDADE: ${receitasMensalidade.length}`, 'success');
+
+      } catch (e) {
+        log('TESTE PAGAMENTO', `❌ ERRO\n${JSON.stringify(e.response?.data || e.message, null, 2)}`, 'error');
+      }
+    }
+
+    async function runTests() {
+      await testarLogin();
+      await testarPagamento();
+    }
+
+    runTests();
+  </script>
+</body>
+</html>

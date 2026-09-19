@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste Realtime</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <style>
+    body { font-family: system-ui; padding: 20px; background: #f1f5f9; }
+    .log { padding: 12px; margin: 8px 0; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; }
+    .success { background: #d4edda; border-color: #10b981; }
+    .error { background: #f8d7da; border-color: #ef4444; }
+    .info { background: #d1ecf1; border-color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const api = axios.create({
+      baseURL: 'http://localhost:8080/api',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    function App() {
+      const [mensalidades, setMensalidades] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [pagamento, setPagamento] = useState(null);
+      const [formPagamento, setFormPagamento] = useState({ valor: '', dataPagamento: '', formaPagamento: '' });
+      const [salvando, setSalvando] = useState(false);
+      const [erroPagamento, setErroPagamento] = useState('');
+      const [logs, setLogs] = useState([]);
+
+      const hoje = new Date().toISOString().split('T')[0];
+
+      const addLog = (msg, type = 'info') => {
+        setLogs(prev => [...prev, { msg, type, time: new Date().toLocaleTimeString() }]);
+      };
+
+      useEffect(() => {
+        carregarMensalidades();
+      }, []);
+
+      const carregarMensalidades = async () => {
+        try {
+          addLog('Carregando mensalidades...', 'info');
+          const resp = await api.get('/mensalidade');
+          setMensalidades(resp.data);
+          addLog(`✅ ${resp.data.length} mensalidades carregadas`, 'success');
+        } catch (e) {
+          addLog(`❌ Erro: ${e.message}`, 'error');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const abrirPagamento = (m) => {
+        addLog(`Abrindo pagamento para mensalidade ${m.id}`, 'info');
+        setPagamento(m);
+        setFormPagamento({ 
+          valor: m.valor != null ? m.valor : '', 
+          dataPagamento: hoje, 
+          formaPagamento: '' 
+        });
+        setErroPagamento('');
+      };
+
+      const fecharPagamento = () => {
+        addLog('Fechando modal', 'info');
+        setPagamento(null);
+        setFormPagamento({ valor: '', dataPagamento: '', formaPagamento: '' });
+      };
+
+      const registrarPagamento = async (e) => {
+        e.preventDefault();
+        addLog('Formulário submetido', 'info');
+        
+        if (!formPagamento.formaPagamento) {
+          setErroPagamento('Selecione a forma de pagamento.');
+          addLog('❌ Validação: selecione forma de pagamento', 'error');
+          return;
+        }
+        
+        setSalvando(true);
+        setErroPagamento('');
+        
+        try {
+          addLog(`Enviando POST /mensalidade/${pagamento.id}/pagar...`, 'info');
+          
+          const usuarioResponsavel = 'admin@academia.com';
+          
+          const payload = {
+            valor: Number(formPagamento.valor),
+            dataPagamento: formPagamento.dataPagamento,
+            formaPagamento: formPagamento.formaPagamento,
+            usuarioResponsavel
+          };
+          
+          addLog(`Payload: ${JSON.stringify(payload)}`, 'info');
+          
+          const resp = await api.post(`/mensalidade/${pagamento.id}/pagar`, payload);
+          
+          addLog(`✅ SUCESSO! Status: ${resp.status}, Mensalidade: ${resp.data.status}`, 'success');
+          
+          fecharPagamento();
+          await carregarMensalidades();
+          
+        } catch (error) {
+          addLog(`❌ ERRO: ${error.response?.data || error.message}`, 'error');
+          console.error('Erro ao registrar pagamento:', error);
+        } finally {
+          setSalvando(false);
+        }
+      };
+
+      if (loading) {
+        return <div className="log">Carregando...</div>;
+      }
+
+      return (
+        <div>
+          <h1>Teste React - Mensalidades</h1>
+          
+          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+            <h2>Logs do Sistema</h2>
+            {logs.map((log, i) => (
+              <div key={i} className={`log ${log.type}`}>
+                <strong>[{log.time}]</strong> {log.msg}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px' }}>
+            <h2>Mensalidades ({mensalidades.length})</h2>
+            <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc' }}>
+                  <th>ID</th>
+                  <th>Aluno</th>
+                  <th>Vencimento</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mensalidades.map(m => (
+                  <tr key={m.id}>
+                    <td>{m.id}</td>
+                    <td>{m.aluno?.nome || 'N/A'}</td>
+                    <td>{m.dataVencimento}</td>
+                    <td>R$ {Number(m.valor).toFixed(2)}</td>
+                    <td>{m.status}</td>
+                    <td>
+                      {m.status !== 'PAGA' && m.status !== 'PAGO' ? (
+                        <button onClick={() => abrirPagamento(m)} style={{ padding: '6px 12px', cursor: 'pointer' }}>
+                          Registrar Pagamento
+                        </button>
+                      ) : (
+                        <span style={{ color: '#10b981' }}>✓ Paga</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modal */}
+          {pagamento && (
+            <div style={{ 
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', 
+              zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' 
+            }}>
+              <div style={{ 
+                background: '#fff', padding: '24px', borderRadius: '12px', 
+                maxWidth: '400px', width: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' 
+              }}>
+                <h3>Registrar Pagamento</h3>
+                <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '16px' }}>
+                  Aluno: <strong>{pagamento.aluno?.nome}</strong> — Vencimento: <strong>{pagamento.dataVencimento}</strong>
+                </p>
+                <form onSubmit={registrarPagamento}>
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
+                      Valor pago (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formPagamento.valor}
+                      onChange={(e) => setFormPagamento({ ...formPagamento, valor: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
+                      Data do pagamento
+                    </label>
+                    <input
+                      type="date"
+                      value={formPagamento.dataPagamento}
+                      onChange={(e) => setFormPagamento({ ...formPagamento, dataPagamento: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
+                      Forma de pagamento
+                    </label>
+                    <select
+                      value={formPagamento.formaPagamento}
+                      onChange={(e) => setFormPagamento({ ...formPagamento, formaPagamento: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                    >
+                      <option value="">Selecione a forma</option>
+                      <option value="DINHEIRO">Dinheiro</option>
+                      <option value="CARTAO">Cartão</option>
+                      <option value="PIX">PIX</option>
+                    </select>
+                  </div>
+                  {erroPagamento && (
+                    <div style={{ color: '#ef4444', fontSize: '14px', marginBottom: '8px' }}>
+                      {erroPagamento}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                    <button type="button" onClick={fecharPagamento} style={{ padding: '8px 16px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                    <button type="submit" disabled={salvando} style={{ padding: '8px 16px', background: '#1a56db', color: '#fff', border: 'none', borderRadius: '6px', cursor: salvando ? 'not-allowed' : 'pointer' }}>
+                      {salvando ? 'Salvando...' : 'Confirmar Pagamento'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
