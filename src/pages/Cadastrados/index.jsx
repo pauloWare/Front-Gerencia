@@ -1,6 +1,6 @@
-import axios from "axios";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../service/api";
 import "./ListaAlunos.css";
 
 export default function ListaClientes() {
@@ -8,16 +8,13 @@ export default function ListaClientes() {
   const [openMenus, setOpenMenus] = useState({});
   const navigate = useNavigate();
 
-  // 🔹 URL base da API Spring Boot
-  const API_URL = "http://localhost:8080/api/usuario";
-
   useEffect(() => {
     buscarAlunos();
   }, []);
 
   const buscarAlunos = async () => {
     try {
-      const response = await axios.get(API_URL);
+      const response = await api.get("/usuario");
       setAlunos(response.data);
     } catch (error) {
       console.error("Erro ao buscar alunos:", error);
@@ -29,7 +26,7 @@ export default function ListaClientes() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await api.delete(`/usuario/${id}`);
       buscarAlunos();
     } catch (error) {
       console.error("Erro ao deletar aluno:", error);
