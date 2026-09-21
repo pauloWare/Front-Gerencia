@@ -1,6 +1,7 @@
 import React from "react";
 import * as LabelPrimitive from "@radix-ui/react-label";
 import { cn } from "../../lib/utils";
+import PropTypes from "prop-types";
 
 const Label = React.forwardRef(({ className, ...props }, ref) => (
   <LabelPrimitive.Root
@@ -13,5 +14,8 @@ const Label = React.forwardRef(({ className, ...props }, ref) => (
   />
 ));
 Label.displayName = "Label";
+Label.propTypes = {
+  className: PropTypes.string,
+};
 
 export { Label };

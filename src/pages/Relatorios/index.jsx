@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api';
-import { Users, CalendarCheck, DollarSign, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, CalendarCheck, DollarSign, CreditCard, TrendingUp } from 'lucide-react';
 
 const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 

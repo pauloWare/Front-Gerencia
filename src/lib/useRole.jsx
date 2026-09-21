@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getAllowedModules } from './permissions';
+import PropTypes from 'prop-types';
 
 const RoleContext = createContext();
 
@@ -38,6 +39,10 @@ export const RoleProvider = ({ children }) => {
       {children}
     </RoleContext.Provider>
   );
+};
+
+RoleProvider.propTypes = {
+  children: PropTypes.node,
 };
 
 export const useRole = () => {

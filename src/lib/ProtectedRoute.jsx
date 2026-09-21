@@ -1,7 +1,7 @@
-import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useRole } from "./useRole";
 import { hasPermission, getDefaultModule } from "./permissions";
+import PropTypes from "prop-types";
 
 export const ProtectedRoute = ({ children }) => {
   const { role, loading } = useRole();
@@ -27,4 +27,8 @@ export const ProtectedRoute = ({ children }) => {
   }
 
   return children;
+};
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node,
 };

@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from './pages/Login/index';
 import Layout from './components/Layout';
 import Home from './pages/Home/index';
@@ -18,8 +18,6 @@ import HistoricoFaturamento from './pages/HistoricoFaturamento/index';
 import Relatorios from './pages/Relatorios/index';
 import Perfil from './pages/Perfil/index';
 import SolicitarManutencao from './pages/SolicitarManutencao/index';
-import Treino from './pages/Treino/index';
-import Prescricao from './pages/Prescricao/index';
 import { ProtectedRoute } from './lib/ProtectedRoute.jsx';
 
 export default function RotasApp() {
@@ -40,13 +38,14 @@ export default function RotasApp() {
         <Route path="funcionarios" element={<ProtectedRoute><Funcionarios /></ProtectedRoute>} />
         <Route path="equipamentos" element={<ProtectedRoute><Equipamentos /></ProtectedRoute>} />
         <Route path="manutencao" element={<ProtectedRoute><Manutencao /></ProtectedRoute>} />
+        {/* Compatibilidade: /tickets é apenas um alias da rota canônica /manutencao
+            (o módulo de permissão continua sendo "manutencao"). */}
+        <Route path="tickets" element={<Navigate to="/manutencao" replace />} />
         <Route path="historico-chamados" element={<ProtectedRoute><HistoricoChamados /></ProtectedRoute>} />
         <Route path="solicitar-manutencao" element={<ProtectedRoute><SolicitarManutencao /></ProtectedRoute>} />
         <Route path="financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
         <Route path="historico-faturamento" element={<ProtectedRoute><HistoricoFaturamento /></ProtectedRoute>} />
         <Route path="relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
-        <Route path="treino/:id" element={<Treino />} />
-        <Route path="prescricao/:id" element={<Prescricao />} />
       </Route>
     </Routes>
   );

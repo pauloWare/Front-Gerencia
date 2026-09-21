@@ -884,6 +884,17 @@ body { margin: 0; padding: 0; font-family: var(--font-sans); background: var(--b
   }
 }
 
+/* Linha CEP + Número: CEP mais estreito que o número. */
+.form-grid-cep {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 2fr);
+  gap: 16px;
+}
+@media (max-width: 700px) {
+  .form-grid-cep { grid-template-columns: 1fr; }
+}
+
+
 /* Corpo de modal com rolagem para formulários grandes */
 .dialog-body {
   max-height: calc(100vh - 160px);
@@ -1103,5 +1114,35 @@ input[type="number"] {
   flex-shrink: 0;
   margin-top: 2px;
 }
+
+/* --- Dicas com ícone (estado do CEP) — informação discreta, não validação --- */
+.hint-info,
+.hint-aviso,
+.hint-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.hint-aviso { color: var(--warning-text); }
+.hint-ok { color: var(--success-text); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.is-spinning { animation: spin 0.8s linear infinite; }
+
+/* --- Resumo da matrícula (integra a seção Plano ao restante da página) --- */
+.matricula-resumo { margin-top: 20px; }
+.resumo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 18px;
+}
+.resumo-item { display: flex; flex-direction: column; gap: 4px; }
+.resumo-label {
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.03em; color: var(--text-muted);
+}
+.resumo-valor { font-size: 0.95rem; color: var(--text); }
+.resumo-valor-destaque { color: var(--success); }
+
 
 

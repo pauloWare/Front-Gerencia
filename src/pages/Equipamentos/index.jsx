@@ -1,14 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api';
-import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { FormField } from '../../components/ui/field';
 import { Plus, Save, X, AlertCircle } from 'lucide-react';
-
-const obterDataHoje = () => {
-  const h = new Date();
-  return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
-};
 
 export default function Equipamentos() {
   const [equipamentos, setEquipamentos] = useState([]);
@@ -18,7 +12,6 @@ export default function Equipamentos() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [form, setForm] = useState({ nome: '', marca: '', localizacao: '', situacao: 'ATIVO' });
-  const navigate = useNavigate();
 
   useEffect(() => {
     buscarEquipamentos();

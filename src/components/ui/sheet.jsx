@@ -2,6 +2,7 @@ import React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cn } from "../../lib/utils";
 import { X } from "lucide-react";
+import PropTypes from "prop-types";
 
 const Sheet = SheetPrimitive.Root;
 const SheetTrigger = SheetPrimitive.Trigger;
@@ -28,5 +29,10 @@ const SheetContent = React.forwardRef(({ className, children, side = "left", ...
   </SheetPrimitive.Portal>
 ));
 SheetContent.displayName = "SheetContent";
+SheetContent.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+  side: PropTypes.oneOf(["left", "right", "top", "bottom"]),
+};
 
 export { Sheet, SheetTrigger, SheetClose, SheetContent };

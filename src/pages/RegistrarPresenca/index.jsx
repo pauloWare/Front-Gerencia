@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../service/api';
 import { QrCode, UserCheck, LogOut, CheckCircle2, AlertCircle } from 'lucide-react';

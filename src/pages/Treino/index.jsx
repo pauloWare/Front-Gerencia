@@ -1,7 +1,6 @@
 import api from "../../service/api";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import "../Prescricao/prescricaoForm.css";
 
 export default function Treino() {
   const { id } = useParams();
@@ -35,6 +34,7 @@ export default function Treino() {
       setAlunoSelecionadoId(id);
       carregarTreinos(id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
   const carregarTreinos = (alunoId) => {

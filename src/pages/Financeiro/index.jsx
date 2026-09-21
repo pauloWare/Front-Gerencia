@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api';
-import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { FormField } from '../../components/ui/field';
 import { MoneyInput } from '../../components/ui/money-input';
 import { DateInput } from '../../components/ui/date-input';
-import { TrendingUp, TrendingDown, Plus, History, AlertCircle, Save, X, PiggyBank, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, Plus, History, AlertCircle, X, PiggyBank } from 'lucide-react';
 import { formatDate } from '../../lib/dateUtils';
 
 const obterDataHoje = () => {
@@ -24,7 +23,6 @@ export default function Financeiro() {
   const [indicadores, setIndicadores] = useState({ receitaRecebida: 0, aReceber: 0, despesasFixas: 0, despesasVariaveis: 0, despesasTotais: 0, saldo: 0 });
   const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   const [novaReceita, setNovaReceita] = useState(false);
   const [novaDespesa, setNovaDespesa] = useState(false);

@@ -2,6 +2,7 @@ import React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "../../lib/utils";
 import { X } from "lucide-react";
+import PropTypes from "prop-types";
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -26,16 +27,26 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
   </DialogPrimitive.Portal>
 ));
 DialogContent.displayName = "DialogContent";
+DialogContent.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
 
 const DialogHeader = ({ className, ...props }) => (
   <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
+DialogHeader.propTypes = {
+  className: PropTypes.string,
+};
 
 const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Title ref={ref} className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />
 ));
 DialogTitle.displayName = "DialogTitle";
+DialogTitle.propTypes = {
+  className: PropTypes.string,
+};
 
 const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
@@ -45,6 +56,9 @@ const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
   />
 ));
 DialogDescription.displayName = "DialogDescription";
+DialogDescription.propTypes = {
+  className: PropTypes.string,
+};
 
 const DialogFooter = ({ className, ...props }) => (
   <div
@@ -56,5 +70,8 @@ const DialogFooter = ({ className, ...props }) => (
   />
 );
 DialogFooter.displayName = "DialogFooter";
+DialogFooter.propTypes = {
+  className: PropTypes.string,
+};
 
 export { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter };

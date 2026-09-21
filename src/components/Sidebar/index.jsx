@@ -22,29 +22,32 @@ export default function Sidebar() {
 
   const mainLinks = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/alunos", label: "Alunos", icon: Users },
-    { to: "/funcionarios", label: "Funcionários", icon: UserCog },
-    { to: "/mensalidades", label: "Mensalidades", icon: CreditCard },
-    { to: "/presenca", label: "Presença (QR)", icon: QrCode },
     { to: "/financeiro", label: "Financeiro", icon: Wallet },
+    { to: "/mensalidades", label: "Mensalidades", icon: CreditCard },
+    { to: "/alunos", label: "Alunos", icon: Users },
     { to: "/historico-faturamento", label: "Histórico de Faturamento", icon: TrendingUp },
     { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+    { to: "/funcionarios", label: "Funcionários", icon: UserCog },
+    
+    
   ];
 
   const subLinks = [
     { to: "/equipamentos", label: "Equipamentos", icon: Dumbbell },
-    { to: "/manutencao", label: "Manutenção", icon: Wrench },
+    { to: "/manutencao", label: "Tickets", icon: Wrench },
     { to: "/historico-chamados", label: "Histórico de Chamados", icon: History },
   ];
 
-  const bottomLinks = [
-    { to: "/perfil", label: "Perfil", icon: User },
-  ];
+  
 
   // "Solicitar Manutenção" — disponível para ADMIN, TÉCNICO e RECEPCIONISTA
   const recepcaoLinks = [
-    { to: "/solicitar-manutencao", label: "Solicitar Manutenção", icon: ClipboardList },
-  ];
+  { to: "/solicitar-manutencao", label: "Solicitar Manutenção", icon: ClipboardList },
+  { to: "/presenca", label: "Presença do dia", icon: QrCode },
+  { to: "/perfil", label: "Perfil", icon: User },
+];
+
+
 
   // O submenu "Tickets" aparece somente se o cargo possui algum módulo de
   // manutenção (ex.: TÉCNICO e ADMIN). FINANCEIRO/RECEPCIONISTA não veem.
@@ -100,7 +103,7 @@ export default function Sidebar() {
             onClick={() => setOpenSubmenu(!openSubmenu)}
           >
             <Wrench size={18} strokeWidth={1.8} />
-            <span>Tickets</span>
+            <span>Manutenção</span>
             {openSubmenu ? (
               <ChevronDown size={14} className="sidebar-chevron" />
             ) : (
@@ -117,9 +120,6 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-divider" />
-        {bottomLinks.map(renderLink)}
-
         {podeSolicitarManutencao && (
           <>
             <div className="sidebar-divider" />

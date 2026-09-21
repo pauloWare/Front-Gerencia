@@ -1,17 +1,8 @@
 import React from "react";
 import { ImagePlus, X } from "lucide-react";
+import PropTypes from "prop-types";
 
-/**
- * Área de upload de imagem integrada ao sistema.
- * Visual de drop zone com ícone Lucide e preview da imagem selecionada.
- *
- * Props:
- * - id: id usado no input file / label
- * - onChange: event handler do input file (a lógica de leitura fica na página)
- * - preview: string base64 ou '' da imagem selecionada
- * - onRemove: handler para remover a imagem
- * - hint: texto auxiliar abaixo do botão (opcional)
- */
+/**/
 const UploadInput = React.forwardRef(
   ({ id, onChange, preview = "", onRemove, hint = "JPG, PNG ou GIF • Máximo 5 MB" }, ref) => (
     <div className="upload-zone">
@@ -44,5 +35,12 @@ const UploadInput = React.forwardRef(
   )
 );
 UploadInput.displayName = "UploadInput";
+UploadInput.propTypes = {
+  id: PropTypes.string.isRequired,
+  onChange: PropTypes.func,
+  preview: PropTypes.string,
+  onRemove: PropTypes.func,
+  hint: PropTypes.string,
+};
 
 export { UploadInput };

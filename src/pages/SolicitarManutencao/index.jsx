@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api';
 import { FormField } from '../../components/ui/field';
 import { DateInput } from '../../components/ui/date-input';
 import { TimeInput } from '../../components/ui/time-input';
 import { UploadInput } from '../../components/ui/upload-input';
-import { ClipboardList, Wrench, CalendarDays, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Wrench, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const obterDataHoje = () => {
   const h = new Date();

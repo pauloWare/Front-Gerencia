@@ -1,23 +1,48 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { useRole } from "../../lib/useRole";
 
+// Rotulo amigavel para o cargo informado pelo login (usuario.cargo).
+// O cargo continua resolvido apenas no frontend (sistema de permissoes
+// nao foi alterado nesta etapa).
+const cargoLabel = (cargo) => {
+  if (!cargo) return "Administrador";
+  switch (String(cargo).toUpperCase()) {
+    case "ADMIN":
+      return "Administrador";
+    case "RECEPCIONISTA":
+      return "Recepcionista";
+    case "FINANCEIRO":
+      return "Financeiro";
+    case "TECNICO":
+      return "Técnico";
+    default:
+      return String(cargo);
+  }
+};
+
 export default function Header() {
   const navigate = useNavigate();
   const { setRole } = useRole();
+
   const usuarioLogado = localStorage.getItem("usuario");
-  let nomeUsuario = "Administrador";
+  let nomeUsuario = null;
+  let cargoUsuario = null;
   if (usuarioLogado) {
     try {
       const user = JSON.parse(usuarioLogado);
-      nomeUsuario = user.nome || user.name || "Administrador";
+      if (user) {
+        nomeUsuario = user.nome || user.name;
+        cargoUsuario = user.cargo ? cargoLabel(user.cargo) : null;
+      }
     } catch {
-      nomeUsuario = "Administrador";
+      // dado corrompido: deixa os rótulos vazios (sem inventar cargo/nome).
     }
   }
+  if (!nomeUsuario) nomeUsuario = "Administrador";
+  if (!cargoUsuario) cargoUsuario = "Administrador";
 
   const dataAtual = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -49,7 +74,7 @@ export default function Header() {
         <div className="app-header-user">
           <div className="app-header-user-info">
             <span className="app-header-name">{nomeUsuario}</span>
-            <span className="app-header-role">Administrador</span>
+            <span className="app-header-role">{cargoUsuario}</span>
           </div>
           <Avatar className="app-header-avatar">
             <AvatarFallback>{initials}</AvatarFallback>

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api';
 import { Wallet, TrendingUp, TrendingDown, Scale, Banknote, BarChart3 } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 const MESES_NOMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -35,6 +36,17 @@ function BarChart({ data }) {
     </>
   );
 }
+
+BarChart.propTypes = {
+  data: PropTypes.arrayOf(
+    PropTypes.shape({
+      referencia: PropTypes.string,
+      rotulo: PropTypes.string,
+      receitas: PropTypes.number,
+      despesas: PropTypes.number,
+    })
+  ),
+};
 
 export default function HistoricoFaturamento() {
   const [meses, setMeses] = useState([]);

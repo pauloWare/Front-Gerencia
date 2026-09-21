@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';import { FormField } from '../../components/ui/field';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
+import { FormField } from '../../components/ui/field';
 import { DateInput } from '../../components/ui/date-input';
 import { TimeInput } from '../../components/ui/time-input';
 import { MoneyInput } from '../../components/ui/money-input';
 import { UploadInput } from '../../components/ui/upload-input';
 import { formatDate, formatTime } from '../../lib/dateUtils';
-import { Plus, Wrench, CalendarClock, CheckCircle, Banknote, Image as ImageIcon, AlertCircle, Save, X } from 'lucide-react';
+import { Plus, Wrench, CalendarClock, CheckCircle, Banknote, Image as ImageIcon, AlertCircle, X } from 'lucide-react';
 
 const obterDataHoje = () => {
   const h = new Date();
@@ -595,9 +596,7 @@ export default function Manutencao() {
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 16px' }}>
                 Equipamento: <strong>{despesa.equipamento?.nome || '-'}</strong> — Serviço: <strong>{despesa.problema || despesa.servico}</strong>
               </p>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 12px' }}>
-                A despesa será registrada no Financeiro como <strong>VARIAVEL</strong> / <strong>MANUTENCAO</strong>.
-              </p>
+              
               <form onSubmit={registrarDespesa} className="dialog-form">
                 <div className="form-grid-2">
                   <FormField label="Valor" required error={errosDespesa.valor}>

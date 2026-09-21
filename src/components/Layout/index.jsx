@@ -1,4 +1,3 @@
-import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
@@ -12,13 +11,14 @@ const pageConfig = {
   "/alunos": { title: "Alunos", subtitle: "Gerenciamento de matrículas e alunos", icon: Users },
   "/funcionarios": { title: "Funcionários", subtitle: "Equipe administrativa e operacional", icon: UserCog },
   "/mensalidades": { title: "Mensalidades", subtitle: "Controle de pagamentos e vencimentos", icon: CreditCard },
-  "/presenca": { title: "Presença (QR Code)", subtitle: "QR Code do dia para os alunos registrarem presença", icon: QrCode },
+  
   "/financeiro": { title: "Financeiro", subtitle: "Receitas, despesas e saldo do período", icon: Wallet },
   "/historico-faturamento": { title: "Histórico de Faturamento", subtitle: "Evolução do faturamento ao longo do tempo", icon: TrendingUp },
   "/relatorios": { title: "Relatórios", subtitle: "Indicadores e métricas da academia", icon: BarChart3 },
   "/equipamentos": { title: "Equipamentos", subtitle: "Cadastro de aparelhos e máquinas", icon: Dumbbell },
   "/manutencao": { title: "Manutenção", subtitle: "Chamados técnicos e reparos", icon: Wrench },
   "/historico-chamados": { title: "Histórico de Chamados", subtitle: "Histórico completo dos chamados de manutenção", icon: History },
+  "/presenca": { title: "Presença (QR Code)", subtitle: "QR Code do dia para os alunos registrarem presença", icon: QrCode },
   "/solicitar-manutencao": { title: "Solicitar Manutenção", subtitle: "Registrar solicitação de manutenção", icon: ClipboardList },
   "/perfil": { title: "Perfil", subtitle: "Informações do usuário logado", icon: User },
   "/cadastro": { title: "Novo Aluno", subtitle: "Cadastro de novo aluno na academia", icon: Users },
@@ -47,15 +47,15 @@ export default function Layout() {
             <div>
               <div className="breadcrumb">
                 <a href="/dashboard">Início</a>
-                {breadcrumbs.map((crumb, idx) => (
-                  <React.Fragment key={crumb.path}>
+                {breadcrumbs.map((crumb) => (
+                  <>
                     <span className="sep">&nbsp;/&nbsp;</span>
                     {crumb.isLast ? (
                       <span>{crumb.label}</span>
                     ) : (
                       <a href={crumb.path}>{crumb.label}</a>
                     )}
-                  </React.Fragment>
+                  </>
                 ))}
               </div>
               <div className="page-title-row">

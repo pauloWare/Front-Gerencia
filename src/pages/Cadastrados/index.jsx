@@ -39,12 +39,10 @@ export default function ListaClientes() {
 
   const handlePrescricao = (id) => {
     navigate(`/prescricao/${id}`);
-    toggleMenu(id);
   };
 
   const handleTreino = (id) => {
     navigate(`/treino/${id}`);
-    toggleMenu(id);
   };
 
   return (

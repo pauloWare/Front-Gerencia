@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "../../lib/utils";
+import PropTypes from "prop-types";
 
 const Badge = React.forwardRef(({ className, variant = "default", ...props }, ref) => {
   const variants = {
@@ -23,5 +24,9 @@ const Badge = React.forwardRef(({ className, variant = "default", ...props }, re
   );
 });
 Badge.displayName = "Badge";
+Badge.propTypes = {
+  className: PropTypes.string,
+  variant: PropTypes.oneOf(["default", "secondary", "destructive", "success", "warning", "outline"]),
+};
 
 export { Badge };

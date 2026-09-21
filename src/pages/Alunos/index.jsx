@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api';
 import { useNavigate } from 'react-router-dom';
 import { User, CalendarCheck, IdCard } from 'lucide-react';
@@ -123,6 +123,7 @@ export default function Alunos() {
                   <td><strong>{aluno.nome}</strong></td>
                   <td>{aluno.email}</td>
                   <td>{aluno.telefone || '-'}</td>
+                  
                   <td>
                     <span className={`status-badge ${aluno.situacao || 'INATIVO'}`}>
                       {aluno.situacao === 'ATIVO' ? 'Ativo' : 
@@ -162,8 +163,10 @@ export default function Alunos() {
             <>
               <div style={{ display: 'grid', gap: 4 }}>
                 <strong style={{ fontSize: '1rem' }}>{detalhe.nome}</strong>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{detalhe.email || '—'}</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{detalhe.telefone || '—'}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Email: {detalhe.email || '—'}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Telefone: {detalhe.telefone || '—'}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>CPF: {detalhe.cpf || '—'}</span>
+
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
                   <span className={`status-badge ${detalhe.situacao || 'INATIVO'}`}>{rotuloSituacao(detalhe.situacao)}</span>
                   {detalhe.plano && (

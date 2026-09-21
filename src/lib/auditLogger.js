@@ -15,7 +15,7 @@ export const auditLogger = {
     console.log('[Audit Log]', logEntry);
   },
 
-  setUserContext: (userId, role) => {
+  setUserContext: () => {
     // In the future, this will update the current user context
     // for subsequent log entries
   }

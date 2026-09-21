@@ -1,16 +1,11 @@
 import React, { useMemo } from "react";
 import { cn } from "../../lib/utils";
 import { formatNumber } from "../../lib/format";
+import PropTypes from "prop-types";
 
-/**
- * Campo monetário com máscara em Real (R$).
- * - Exibição: "R$ 1.500,00"
- * - Valor controlado: número (o mesmo enviado à API, ex.: 1500.00)
- *
- * O estado deve guardar o valor NUMÉRICO (onde ''/undefined = vazio).
- */
+/**/
 const MoneyInput = React.forwardRef(
-  ({ value, onChange, className, id, placeholder, disabled, required, ...props }, ref) => {
+  ({ value, onChange, className, id, placeholder, disabled, ...props }, ref) => {
     const display = useMemo(() => {
       if (value === null || value === undefined || value === "") return "";
       return formatNumber(value, 2);
@@ -46,5 +41,13 @@ const MoneyInput = React.forwardRef(
   }
 );
 MoneyInput.displayName = "MoneyInput";
+MoneyInput.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  onChange: PropTypes.func,
+  className: PropTypes.string,
+  id: PropTypes.string,
+  placeholder: PropTypes.string,
+  disabled: PropTypes.bool,
+};
 
 export { MoneyInput };

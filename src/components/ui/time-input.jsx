@@ -1,10 +1,9 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Clock3 } from "lucide-react";
+import PropTypes from "prop-types";
 
-/**
- * Campo de horário com ícone de relógio e placeholder visual. Valor em "HH:mm".
- */
+/**/
 const TimeInput = React.forwardRef(({ className, id, value, placeholder = "HH:MM", disabled, ...props }, ref) => (
   <div className="input-icon-wrapper">
     <Clock3 size={16} className="input-icon" aria-hidden="true" />
@@ -23,5 +22,12 @@ const TimeInput = React.forwardRef(({ className, id, value, placeholder = "HH:MM
   </div>
 ));
 TimeInput.displayName = "TimeInput";
+TimeInput.propTypes = {
+  className: PropTypes.string,
+  id: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  placeholder: PropTypes.string,
+  disabled: PropTypes.bool,
+};
 
 export { TimeInput };

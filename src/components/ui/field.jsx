@@ -1,10 +1,9 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 import { AlertCircle } from "lucide-react";
+import PropTypes from "prop-types";
 
-/**
- * Campo de formulário com label, indicação de obrigatoriedade e mensagem de erro.
- */
+/**/
 const FormField = React.forwardRef(
   ({ className, label, required, error, hint, htmlFor, children, ...props }, ref) => (
     <div ref={ref} className={cn("form-field", error && "form-field-error", className)} {...props}>
@@ -28,5 +27,14 @@ const FormField = React.forwardRef(
   )
 );
 FormField.displayName = "FormField";
+FormField.propTypes = {
+  className: PropTypes.string,
+  label: PropTypes.string,
+  required: PropTypes.bool,
+  error: PropTypes.string,
+  hint: PropTypes.string,
+  htmlFor: PropTypes.string,
+  children: PropTypes.node,
+};
 
 export { FormField };

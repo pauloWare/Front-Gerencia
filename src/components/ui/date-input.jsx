@@ -1,12 +1,8 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 import { CalendarDays } from "lucide-react";
+import PropTypes from "prop-types";
 
-/**
- * Campo de data (somente data) com ícone de calendário e placeholder visual.
- * Utiliza o input nativo type="date" (exibição amigável conforme o navegador),
- * mantendo o valor em ISO (AAAA-MM-DD), que é exatamente o que a API espera.
- */
 const DateInput = React.forwardRef(({ className, id, value, placeholder = "DD/MM/AAAA", disabled, ...props }, ref) => (
   <div className="input-icon-wrapper">
     <CalendarDays size={16} className="input-icon" aria-hidden="true" />
@@ -25,5 +21,12 @@ const DateInput = React.forwardRef(({ className, id, value, placeholder = "DD/MM
   </div>
 ));
 DateInput.displayName = "DateInput";
+DateInput.propTypes = {
+  className: PropTypes.string,
+  id: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  placeholder: PropTypes.string,
+  disabled: PropTypes.bool,
+};
 
 export { DateInput };
