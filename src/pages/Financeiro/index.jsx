@@ -217,13 +217,13 @@ export default function Financeiro() {
         </div>
       </div>
 
-      {/* Despesas */}
+      {/* Despesas (inclui as criadas pela manutenção: mesmo registro, mesma descrição) */}
       <div className="theme-card">
         <h2 className="section-title"><TrendingDown size={16} /> Despesas</h2>
         <div className="table-wrapper">
           <table className="theme-table">
             <thead>
-              <tr><th>Tipo</th><th>Classificação</th><th>Descrição</th><th>Valor</th><th>Data</th><th style={{ width: 100 }}>Ações</th></tr>
+              <tr><th>Descrição</th><th>Tipo</th><th>Classificação</th><th>Valor</th><th>Data</th><th style={{ width: 100 }}>Ações</th></tr>
             </thead>
             <tbody>
               {despesas.length === 0 ? (
@@ -231,9 +231,11 @@ export default function Financeiro() {
               ) : (
                 despesas.map(d => (
                   <tr key={d.id}>
+                    {/* RODADA 3: descrição em destaque (ex.: "Troca da correia da esteira").
+                        Despesas antigas sem descrição exibem "—" sem quebrar. */}
+                    <td><div className="cell-wrap"><strong>{d.descricao || '—'}</strong></div></td>
                     <td>{d.tipo}</td>
                     <td><span className={`status-badge ${d.classificacao}`}>{d.classificacao || 'Não classificada'}</span></td>
-                    <td>{d.descricao}</td>
                     <td><strong style={{ color: 'var(--danger)' }}>R$ {Number(d.valor).toFixed(2)}</strong></td><td className="date-friendly">{formatDate(d.data) || '—'}</td>
                     <td><div className="actions">
                       <button onClick={() => handleDeleteDespesa(d.id)} className="btn btn-danger btn-xs">Excluir</button>
