@@ -11,8 +11,19 @@ const obterDataHoje = () => {
   return h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
 };
 
-const PRIORIDADES = ['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'];
-const rotuloPrioridade = { BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica' };
+const PRIORIDADES = ['URGENTE', 'ALTA', 'MEDIA', 'BAIXA'];
+
+// RODADA 1 — SLA DE MANUTENÇÃO: prazo definido pelo SISTEMA a partir da
+// prioridade (não editável). CRITICA mantido só p/ rótulo de histórico.
+const SLA_DIAS_POR_PRIORIDADE = { URGENTE: 0, ALTA: 1, MEDIA: 3, BAIXA: 5, CRITICA: 0 };
+const rotuloPrioridade = { URGENTE: 'Urgente', BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica' };
+
+const textoSla = (prioridade) => {
+  const dias = SLA_DIAS_POR_PRIORIDADE[prioridade];
+  if (dias == null) return 'SLA calculado pelo sistema após salvar';
+  if (dias === 0) return 'SLA: mesmo dia (URGENTE)';
+  return `SLA: ${dias} dia${dias !== 1 ? 's' : ''} (calculado pelo sistema)`;
+};
 
 export default function SolicitarManutencao() {
   const [equipamentos, setEquipamentos] = useState([]);
@@ -27,7 +38,6 @@ export default function SolicitarManutencao() {
     prioridade: 'MEDIA',
     data: obterDataHoje(),
     hora: '',
-    slaDias: '',
     fotoBase64: '',
   });
   const [previewImagem, setPreviewImagem] = useState('');
@@ -95,7 +105,7 @@ export default function SolicitarManutencao() {
         prioridade: form.prioridade,
         data: form.data,
         hora: form.hora || null,
-        slaDias: form.slaDias ? Number(form.slaDias) : null,
+        // RODADA 1: SLA calculado pelo backend; frontend não envia slaDias.
         status: 'ABERTO',
         tipo: 'CORRETIVA',
         fotoBase64: form.fotoBase64 || null,
@@ -107,7 +117,6 @@ export default function SolicitarManutencao() {
         prioridade: 'MEDIA',
         data: obterDataHoje(),
         hora: '',
-        slaDias: '',
         fotoBase64: '',
       });
       setPreviewImagem('');
@@ -185,6 +194,10 @@ export default function SolicitarManutencao() {
                   ))}
                 </select>
               </FormField>
+              {/* RODADA 1: SLA apenas informativo, calculado pelo backend. */}
+              <FormField label="SLA (prazo)" hint="Definido pelo sistema">
+                <input className="theme-input" type="text" value={textoSla(form.prioridade)} readOnly disabled />
+              </FormField>
             </div>
           </div>
 
@@ -229,7 +242,6 @@ export default function SolicitarManutencao() {
                   prioridade: 'MEDIA',
                   data: obterDataHoje(),
                   hora: '',
-                  slaDias: '',
                   fotoBase64: '',
                 });
                 setPreviewImagem('');

@@ -4,7 +4,7 @@ import { History, CheckCircle2, Loader, Timer, AlertTriangle, Clock3 } from 'luc
 import { DateInput } from '../../components/ui/date-input';
 import { formatDate, formatDateTime, formatTime } from '../../lib/dateUtils';
 
-const rotuloPrioridade = { BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica' };
+const rotuloPrioridade = { URGENTE: 'Urgente', BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica' };
 const rotuloStatusChamado = { ABERTO: 'Aberto', EM_ANDAMENTO: 'Em andamento', FINALIZADO: 'Finalizado' };
 const rotuloSla = {
   DENTRO_PRAZO: 'Dentro do prazo',
@@ -17,7 +17,8 @@ const rotuloSla = {
 };
 
 const STATUS_OPCOES = ['ABERTO', 'EM_ANDAMENTO', 'FINALIZADO'];
-const PRIORIDADE_OPCOES = ['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'];
+// RODADA 1: URGENTE é a prioridade nova; CRITICA mantida só p/ histórico.
+const PRIORIDADE_OPCOES = ['URGENTE', 'ALTA', 'MEDIA', 'BAIXA', 'CRITICA'];
 const TIPO_OPCOES = ['CORRETIVA', 'PREVENTIVA'];
 const SLA_OPCOES = [
   'DENTRO_PRAZO', 'PROXIMO_VENCIMENTO', 'SLA_VENCIDO',
@@ -25,6 +26,14 @@ const SLA_OPCOES = [
 ];
 
 const hojeISO = () => new Date().toISOString().slice(0, 10);
+
+// RODADA 5: "Esteira 01" -> "Esteira" — mesma regra da tela de Equipamentos,
+// usada para agrupar unidades do mesmo tipo no filtro de equipamento.
+const tipoDoNome = (nome) => {
+  const n = String(nome || '').trim();
+  const m = n.match(/^(.*?)\s+0*\d+\s*$/);
+  return m && m[1].trim() ? m[1].trim() : n;
+};
 
 export default function HistoricoChamados() {
   const [chamados, setChamados] = useState([]);
@@ -42,7 +51,7 @@ export default function HistoricoChamados() {
     tipo: '',
     slaStatus: '',
   });
-  const [nomeFiltros, setNomeFiltros] = useState({ tecnicos: [], equipamentos: [] });
+  const [nomeFiltros, setNomeFiltros] = useState({ tecnicos: [], equipamentos: [], tipos: [] });
 
   useEffect(() => {
     const init = async () => {
@@ -56,7 +65,13 @@ export default function HistoricoChamados() {
           .map(id => chamados.find(c => c.equipamento?.id === id)?.equipamento)
           .filter(Boolean)
           .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
-        setNomeFiltros({ tecnicos, equipamentos });
+        setNomeFiltros({
+          tecnicos,
+          equipamentos,
+          // RODADA 5: tipos derivados dos equipamentos existentes (sem duplicar).
+          tipos: [...new Set(equipamentos.map(eq => tipoDoNome(eq.nome)).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'pt-BR')),
+        });
       } catch (error) {
         console.error('Erro ao buscar histórico de chamados:', error);
         setErro('Erro ao carregar o histórico de chamados.');
@@ -76,7 +91,8 @@ export default function HistoricoChamados() {
     if (filtro.fim && c.data && c.data > filtro.fim) return false;
     if (filtro.status && c.status !== filtro.status) return false;
     if (filtro.tecnico && c.responsavel !== filtro.tecnico) return false;
-    if (filtro.equipamento && String(c.equipamento?.id || '') !== filtro.equipamento) return false;
+    // RODADA 5: filtro por TIPO do equipamento ("Esteira" abrange Esteira 01, 02, ...).
+    if (filtro.equipamento && tipoDoNome(c.equipamento?.nome) !== filtro.equipamento) return false;
     if (filtro.prioridade && c.prioridade !== filtro.prioridade) return false;
     if (filtro.tipo && c.tipo !== filtro.tipo) return false;
     if (filtro.slaStatus && c.slaStatus !== filtro.slaStatus) return false;
@@ -136,7 +152,7 @@ export default function HistoricoChamados() {
           <label>Equipamento</label>
           <select className="theme-select" value={filtro.equipamento} onChange={(e) => ajustarFiltro('equipamento', e.target.value)}>
             <option value="">Todos</option>
-            {nomeFiltros.equipamentos.map(eq => <option key={eq.id} value={String(eq.id)}>{eq.nome}</option>)}
+            {nomeFiltros.tipos.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <div className="filter-group">

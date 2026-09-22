@@ -7,16 +7,21 @@ import { TimeInput } from '../../components/ui/time-input';
 import { MoneyInput } from '../../components/ui/money-input';
 import { UploadInput } from '../../components/ui/upload-input';
 import { formatDate, formatTime } from '../../lib/dateUtils';
-import { Plus, Wrench, CalendarClock, CheckCircle, Banknote, Image as ImageIcon, AlertCircle, X } from 'lucide-react';
+import { Plus, Wrench, CalendarClock, CheckCircle, Image as ImageIcon, AlertCircle, X } from 'lucide-react';
 
 const obterDataHoje = () => {
   const h = new Date();
   return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
 };
 
-const PRIORIDADES = ['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'];
+const PRIORIDADES = ['URGENTE', 'ALTA', 'MEDIA', 'BAIXA'];
 
-const rotuloPrioridade = { BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica' };
+// RODADA 1 — SLA DE MANUTENÇÃO: prazo definido pelo SISTEMA a partir da
+// prioridade (não editável pelo usuário). CRITICA mantido apenas para
+// exibição de chamados históricos.
+const SLA_DIAS_POR_PRIORIDADE = { URGENTE: 0, ALTA: 1, MEDIA: 3, BAIXA: 5, CRITICA: 0 };
+
+const rotuloPrioridade = { URGENTE: 'Urgente', BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica' };
 const rotuloStatusChamado = { ABERTO: 'Aberto', EM_ANDAMENTO: 'Em andamento', FINALIZADO: 'Finalizado' };
 const rotuloSla = {
   DENTRO_PRAZO: 'Dentro do prazo',
@@ -29,7 +34,14 @@ const rotuloSla = {
 };
 const rotuloStatusPrev = { AGENDADA: 'Agendada', EM_ANDAMENTO: 'Em andamento', CONCLUIDA: 'Concluída', ATRASADA: 'Atrasada' };
 
-const formChamadoVazio = () => ({ equipamentoId: '', problema: '', prioridade: 'MEDIA', slaDias: '', data: obterDataHoje(), hora: '', responsavel: '', status: 'ABERTO', fotoBase64: '' });
+const textoSla = (prioridade) => {
+  const dias = SLA_DIAS_POR_PRIORIDADE[prioridade];
+  if (dias == null) return 'SLA calculado pelo sistema após salvar';
+  if (dias === 0) return 'SLA: mesmo dia (URGENTE)';
+  return `SLA: ${dias} dia${dias !== 1 ? 's' : ''} (calculado pelo sistema)`;
+};
+
+const formChamadoVazio = () => ({ equipamentoId: '', problema: '', prioridade: 'MEDIA', data: obterDataHoje(), hora: '', responsavel: '', status: 'ABERTO', fotoBase64: '' });
 const formPrevVazio = () => ({ equipamentoId: '', servico: '', periodicidade: '', dataUltimaManutencao: '', proximaManutencao: '', responsavel: '', status: 'AGENDADA' });
 
 export default function Manutencao() {
@@ -42,7 +54,9 @@ export default function Manutencao() {
 
   const [novoChamado, setNovoChamado] = useState(false);
   const [novaPrev, setNovaPrev] = useState(false);
-  const [despesa, setDespesa] = useState(null);
+  // RODADA 4: alvo da conclusão (despesa opcional dentro do mesmo modal).
+  // Formato: { kind: 'chamado' | 'preventiva', item }
+  const [concluir, setConcluir] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [errosChamado, setErrosChamado] = useState({});
@@ -50,7 +64,7 @@ export default function Manutencao() {
   const [errosDespesa, setErrosDespesa] = useState({});
   const [formChamado, setFormChamado] = useState(formChamadoVazio());
   const [formPrev, setFormPrev] = useState(formPrevVazio());
-  const [formDespesa, setFormDespesa] = useState({ valor: '', data: obterDataHoje() });
+  const [formDespesa, setFormDespesa] = useState({ valor: '', data: obterDataHoje(), descricao: '' });
   const [previewImagemChamado, setPreviewImagemChamado] = useState('');
   const [imagemAmpliada, setImagemAmpliada] = useState('');
 
@@ -161,7 +175,7 @@ export default function Manutencao() {
         equipamento: equip,
         problema: formChamado.problema,
         prioridade: formChamado.prioridade,
-        slaDias: formChamado.slaDias ? Number(formChamado.slaDias) : null,
+        // RODADA 1: SLA calculado pelo backend a partir da prioridade.
         data: formChamado.data,
         hora: formChamado.hora || null,
         responsavel: formChamado.responsavel,
@@ -181,19 +195,66 @@ export default function Manutencao() {
     }
   };
 
-  const concluirChamado = async (ch) => {
-    if (window.confirm('Marcar este chamado como FINALIZADO?')) {
-      try {
-        await api.put(`/manutencao/chamados/${ch.id}`, {
-          ...ch,
-          equipamento: ch.equipamento,
+  // RODADA 4: "Concluir" abre o modal (a despesa opcional vai dentro dele).
+  const abrirConcluir = (kind, item) => {
+    setConcluir({ kind, item });
+    setFormDespesa({ valor: '', data: obterDataHoje(), descricao: item.problema || item.servico || '' });
+    setErro('');
+    setErrosDespesa({});
+  };
+
+  // RODADA 4: confirma a conclusão; registra a despesa (opcional) antes de concluir.
+  // Sem valor => só conclui, sem criar despesa. Com valor => 1 única despesa
+  // (mesmo endpoint da Rodada 3) + conclusão. Erro mantém o modal aberto.
+  const confirmarConclusao = async (e) => {
+    e.preventDefault();
+    if (!concluir) return;
+    const { kind, item } = concluir;
+    const valorPreenchido = formDespesa.valor !== '' && formDespesa.valor !== null && formDespesa.valor !== undefined;
+    const valorNumerico = Number(formDespesa.valor || 0);
+    if (valorPreenchido && !(valorNumerico > 0)) {
+      setErrosDespesa({ valor: 'Informe um valor válido ou deixe vazio para concluir sem despesa.' });
+      return;
+    }
+    const temDespesa = valorPreenchido && valorNumerico > 0;
+    setErro('');
+    setSalvando(true);
+    try {
+      if (temDespesa) {
+        await api.post('/financeiro/despesas/manutencao', {
+          // RODADA 3/4: descrição digitada pelo usuário (ex.: "Troca da correia da
+          // esteira"). Salva como-is na Despesa; fallback p/ serviço se vazia.
+          descricao: (formDespesa.descricao || '').trim() || item.problema || item.servico || 'Serviço',
+          equipamento: item.equipamento?.nome || '',
+          valor: valorNumerico,
+          data: formDespesa.data,
+          manutencaoId: item.id,
+        });
+      }
+      if (kind === 'chamado') {
+        await api.put(`/manutencao/chamados/${item.id}`, {
+          ...item,
+          equipamento: item.equipamento,
           status: 'FINALIZADO',
-          dataConclusao: ch.dataConclusao || obterDataHoje(),
+          dataConclusao: item.dataConclusao || obterDataHoje(),
         });
         await buscarChamados();
-      } catch (error) {
-        console.error('Erro ao concluir chamado:', error);
+      } else {
+        await api.put(`/manutencao/preventivas/${item.id}`, {
+          ...item,
+          equipamento: item.equipamento,
+          status: 'CONCLUIDA',
+        });
+        await buscarPreventivas();
       }
+      setErrosDespesa({});
+      setConcluir(null);
+      setFormDespesa({ valor: '', data: obterDataHoje(), descricao: '' });
+    } catch (error) {
+      console.error('Erro ao concluir manutenção:', error);
+      setErro('❌ Não foi possível concluir a manutenção.');
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -233,54 +294,7 @@ export default function Manutencao() {
     }
   };
 
-  const concluirPreventiva = async (p) => {
-    if (window.confirm('Marcar esta manutenção preventiva como CONCLUÍDA?')) {
-      try {
-        await api.put(`/manutencao/preventivas/${p.id}`, {
-          ...p,
-          equipamento: p.equipamento,
-          status: 'CONCLUIDA',
-        });
-        await buscarPreventivas();
-      } catch (error) {
-        console.error('Erro ao concluir preventiva:', error);
-      }
-    }
-  };
-
-  const abrirDespesa = (ch) => {
-    setDespesa(ch);
-    setFormDespesa({ valor: '', data: obterDataHoje() });
-    setErro('');
-  };
-
-  const registrarDespesa = async (e) => {
-    e.preventDefault();
-    const erros = {};
-    if (!formDespesa.valor || Number(formDespesa.valor) <= 0) {
-      erros.valor = 'Este campo é obrigatório.';
-    }
-    setErrosDespesa(erros);
-    if (Object.keys(erros).length > 0) return;
-    setSalvando(true);
-    setErro('');
-    try {
-      await api.post('/financeiro/despesas/manutencao', {
-        descricao: despesa.problema || despesa.servico || 'Serviço',
-        equipamento: despesa.equipamento?.nome || '',
-        valor: Number(formDespesa.valor || 0),
-        data: formDespesa.data,
-        manutencaoId: despesa.id,
-      });
-      setErrosDespesa({});
-      setDespesa(null);
-    } catch (error) {
-      console.error('Erro ao registrar despesa:', error);
-      setErro('❌ Erro ao registrar a despesa.');
-    } finally {
-      setSalvando(false);
-    }
-  };
+  // (RODADA 4: conclusão sempre via modal abrirConcluir/confirmarConclusao.)
 
   if (loading) return <div className="loading">Carregando...</div>;
 
@@ -374,13 +388,10 @@ export default function Manutencao() {
                             </button>
                           )}
                           {ch.status !== 'FINALIZADO' && (
-                            <button onClick={() => concluirChamado(ch)} className="btn btn-success btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button onClick={() => abrirConcluir('chamado', ch)} className="btn btn-success btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <CheckCircle size={12} /> Concluir
                             </button>
                           )}
-                          <button onClick={() => abrirDespesa(ch)} className="btn btn-secondary btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Banknote size={12} /> Despesa
-                          </button>
                           <button onClick={() => handleDeleteChamado(ch.id)} className="btn btn-danger btn-xs">Excluir</button>
                         </div>
                       </td>
@@ -445,7 +456,7 @@ export default function Manutencao() {
                       <td>
                         <div className="actions">
                           {p.statusExibicao !== 'CONCLUIDA' && (
-                            <button onClick={() => concluirPreventiva(p)} className="btn btn-success btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button onClick={() => abrirConcluir('preventiva', p)} className="btn btn-success btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <CheckCircle size={12} /> Concluir
                             </button>
                           )}
@@ -468,7 +479,7 @@ export default function Manutencao() {
             <DialogTitle>
               <Wrench size={18} /> Novo Chamado (Manutenção Corretiva)
             </DialogTitle>
-            <DialogDescription>Registre um novo chamado de manutenção corretiva, informando SLA e prioridade.</DialogDescription>
+            <DialogDescription>Registre um novo chamado de manutenção corretiva. O SLA é calculado pelo sistema a partir da prioridade.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitChamado} className="dialog-form dialog-body">
             <FormField label="Equipamento" required error={errosChamado.equipamentoId}>
@@ -486,8 +497,9 @@ export default function Manutencao() {
                   {PRIORIDADES.map(pr => <option key={pr} value={pr}>{rotuloPrioridade[pr]}</option>)}
                 </select>
               </FormField>
-              <FormField label="SLA (dias)" hint="Prazo esperado para resolução">
-                <input className="theme-input" type="number" min="1" value={formChamado.slaDias} onChange={(e) => setFormChamado({ ...formChamado, slaDias: e.target.value })} placeholder="Ex.: 2" />
+              {/* RODADA 1: SLA apenas informativo, calculado pelo backend. */}
+              <FormField label="SLA (prazo)" hint="Definido pelo sistema">
+                <input className="theme-input" type="text" value={textoSla(formChamado.prioridade)} readOnly disabled />
               </FormField>
             </div>
             <div className="form-grid-2">
@@ -582,24 +594,36 @@ export default function Manutencao() {
         </DialogContent>
       </Dialog>
 
-      {/* Registrar despesa de manutenção */}
-      <Dialog open={!!despesa} onOpenChange={(open) => !open && setDespesa(null)}>
+      {/* RODADA 4: Concluir manutenção (despesa opcional no mesmo fluxo) */}
+      <Dialog open={!!concluir} onOpenChange={(open) => !open && !salvando && setConcluir(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              <Banknote size={18} /> Registrar Despesa de Manutenção
+              <CheckCircle size={18} /> Concluir manutenção
             </DialogTitle>
-            <DialogDescription>Informa o valor e a data da despesa. Será lançada no Financeiro.</DialogDescription>
+            <DialogDescription>Informe os dados da despesa (opcional) antes de concluir. Se lançada, ela aparece no Financeiro com a mesma descrição.</DialogDescription>
           </DialogHeader>
-          {despesa && (
+          {concluir && (
             <>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 16px' }}>
-                Equipamento: <strong>{despesa.equipamento?.nome || '-'}</strong> — Serviço: <strong>{despesa.problema || despesa.servico}</strong>
+                Equipamento: <strong>{concluir.item.equipamento?.nome || '-'}</strong> — Serviço: <strong>{concluir.item.problema || concluir.item.servico}</strong>
               </p>
-              
-              <form onSubmit={registrarDespesa} className="dialog-form">
+
+              <form onSubmit={confirmarConclusao} className="dialog-form">
+                {/* RODADA 3/4: descrição do gasto (ex.: "Troca da correia da esteira").
+                    Opcional; persistida na Despesa e exibida também em /financeiro. */}
+                <FormField label="Descrição" hint="Opcional — explique o gasto realizado">
+                  <input
+                    className="theme-input"
+                    type="text"
+                    value={formDespesa.descricao}
+                    onChange={(e) => setFormDespesa({ ...formDespesa, descricao: e.target.value })}
+                    placeholder="Ex.: Troca da correia da esteira"
+                    maxLength={255}
+                  />
+                </FormField>
                 <div className="form-grid-2">
-                  <FormField label="Valor" required error={errosDespesa.valor}>
+                  <FormField label="Valor" hint="Opcional — vazio conclui sem despesa" error={errosDespesa.valor}>
                     <MoneyInput value={formDespesa.valor} onChange={(v) => setFormDespesa({ ...formDespesa, valor: v })} placeholder="0,00" />
                   </FormField>
                   <FormField label="Data" required>
@@ -608,11 +632,11 @@ export default function Manutencao() {
                 </div>
                 {erro && <div className="form-message error" style={{ marginBottom: 0 }}><AlertCircle size={14} /> {erro}</div>}
                 <DialogFooter className="dialog-footer">
-                  <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setDespesa(null)}>
+                  <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setConcluir(null)} disabled={salvando}>
                     <X size={14} /> Cancelar
                   </button>
                   <button type="submit" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={salvando}>
-                    <Banknote size={14} /> {salvando ? 'Salvando...' : 'Registrar despesa'}
+                    <CheckCircle size={14} /> {salvando ? 'Concluindo...' : 'Concluir manutenção'}
                   </button>
                 </DialogFooter>
               </form>
