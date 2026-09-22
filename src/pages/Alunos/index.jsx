@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../../service/api';
 import { useNavigate } from 'react-router-dom';
-import { User, CalendarCheck, IdCard } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { User, CalendarCheck, IdCard, Plus, X, CheckCircle2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { formatDate, formatTime } from '../../lib/dateUtils';
+import AlunoForm from '../Cadastro/AlunoForm';
 
 const rotuloSituacao = (situacao) => {
   switch (situacao) {
@@ -27,6 +28,11 @@ export default function Alunos() {
   const [resumo, setResumo] = useState(null);
   const [mensalidades, setMensalidades] = useState([]);
   const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
+
+  // RODADA 2: modal "+ Novo aluno" (mesmo padrão visual de Funcionários).
+  // Remontar o AlunoForm a cada abertura garante formulário limpo.
+  const [modalNovoAberto, setModalNovoAberto] = useState(false);
+  const [chaveFormNovo, setChaveFormNovo] = useState(0);
 
   useEffect(() => {
     buscarAlunos();
@@ -99,7 +105,14 @@ export default function Alunos() {
           <span className="record-count">{filtered.length} registro{filtered.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="toolbar-right">
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/cadastro')}>+ Novo Aluno</button>
+          {/* RODADA 2: cadastro abre em modal sobre a própria página (padrão Funcionários). */}
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => { setChaveFormNovo((k) => k + 1); setModalNovoAberto(true); }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <Plus size={14} /> Novo Aluno
+          </button>
         </div>
       </div>
 
@@ -247,6 +260,57 @@ export default function Alunos() {
               )}
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* RODADA 2: cadastro de novo aluno em modal (padrão Funcionários). */}
+      <Dialog
+        open={modalNovoAberto}
+        onOpenChange={(open) => {
+          if (!open) setModalNovoAberto(false);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              <span className="dialog-title-icon"><Plus size={18} /> Cadastrar novo aluno</span>
+            </DialogTitle>
+            <DialogDescription>
+              Preencha os dados do aluno. O cadastro é feito na mesma página, sem navegação.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <AlunoForm
+              key={chaveFormNovo}
+              idAluno={null}
+              modo="modal"
+              formId="aluno-form-modal-novo"
+              onSucesso={() => {
+                setModalNovoAberto(false);
+                buscarAlunos();
+              }}
+            />
+          </div>
+
+          <DialogFooter className="dialog-footer">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={() => setModalNovoAberto(false)}
+            >
+              <X size={14} /> Cancelar
+            </button>
+            <button
+              type="submit"
+              form="aluno-form-modal-novo"
+              className="btn btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <CheckCircle2 size={14} /> Cadastrar aluno
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
