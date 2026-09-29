@@ -2,6 +2,7 @@ import { useState } from 'react';
 import api from '../../service/api';
 import { useNavigate } from 'react-router-dom';
 import { useRole } from '../../lib/useRole';
+import { salvarSessao } from '../../lib/auth';
 import { Dumbbell, Mail, Lock, LogIn, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function Login() {
@@ -21,8 +22,9 @@ export default function Login() {
 
       if (data && data.token) {
         setMessage('Login realizado!');
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+        // Guarda o token (enviado em Authorization: Bearer nas próximas
+        // requisições) e o usuário devolvido pelo backend — sem senha.
+        salvarSessao(data.token, data.usuario);
         setRole(data.usuario?.cargo || null);
         setTimeout(() => navigate('/dashboard'), 300);
       } else {

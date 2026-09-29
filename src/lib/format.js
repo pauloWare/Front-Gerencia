@@ -13,6 +13,17 @@ export function formatCurrency(value) {
 }
 
 /**
+ * Formata um CPF (11 dígitos) para 000.000.000-00.
+ * O backend grava o CPF apenas com dígitos; a máscara é aplicada na exibição.
+ * Valores com tamanho diferente são devolvidos como estão (não inventamos dado).
+ */
+export function formatCpf(value) {
+  const digitos = String(value ?? '').replace(/\D/g, '');
+  if (digitos.length !== 11) return value ? String(value) : '';
+  return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9)}`;
+}
+
+/**
  * Formata um número com separador de milhar e casas decimais, ex.: 1.500,00.
  * Sem o símbolo da moeda.
  */

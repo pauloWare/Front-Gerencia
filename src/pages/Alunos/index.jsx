@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, CalendarCheck, IdCard, Plus, X, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { formatDate, formatTime } from '../../lib/dateUtils';
+import { formatCpf } from '../../lib/format';
 import AlunoForm from '../Cadastro/AlunoForm';
 
 const rotuloSituacao = (situacao) => {
@@ -178,7 +179,7 @@ export default function Alunos() {
                 <strong style={{ fontSize: '1rem' }}>{detalhe.nome}</strong>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Email: {detalhe.email || '—'}</span>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Telefone: {detalhe.telefone || '—'}</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>CPF: {detalhe.cpf || '—'}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>CPF: {detalhe.cpf ? formatCpf(detalhe.cpf) : '—'}</span>
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
                   <span className={`status-badge ${detalhe.situacao || 'INATIVO'}`}>{rotuloSituacao(detalhe.situacao)}</span>

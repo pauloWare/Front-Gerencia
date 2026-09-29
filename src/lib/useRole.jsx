@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getAllowedModules } from './permissions';
+import { getCargo, limparSessao, sessaoValida } from './auth';
 import PropTypes from 'prop-types';
 
 const RoleContext = createContext();
@@ -8,20 +9,17 @@ export const RoleProvider = ({ children }) => {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // In the future, this will be populated from the authenticated user
+  // O perfil é lido da sessão salva pelo login e SEMPRE corresponde ao cargo
+  // assinado no token (usado pelo backend para autorizar as requisições).
+  // Sessão expirada é descartada aqui: o usuário volta para o login.
   useEffect(() => {
-    const usuarioLogado = localStorage.getItem('usuario');
-    
-    if (usuarioLogado) {
-      try {
-        const user = JSON.parse(usuarioLogado);
-        const userRole = user?.role || user?.cargo || null;
-        setRole(userRole);
-      } catch {
-        setRole(null);
-      }
+    if (!sessaoValida()) {
+      limparSessao();
+      setRole(null);
+    } else {
+      setRole(getCargo());
     }
-    
+
     setLoading(false);
   }, []);
 
@@ -40,6 +38,7 @@ export const RoleProvider = ({ children }) => {
     </RoleContext.Provider>
   );
 };
+
 
 RoleProvider.propTypes = {
   children: PropTypes.node,

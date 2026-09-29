@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useRole } from "../../lib/useRole";
 import { hasPermission } from "../../lib/permissions";
+import { logout } from "../../lib/auth";
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -14,8 +15,7 @@ export default function Sidebar() {
   const { role, setRole } = useRole();
 
   const handleLogout = () => {
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("token");
+    logout();
     setRole(null);
     navigate("/login");
   };

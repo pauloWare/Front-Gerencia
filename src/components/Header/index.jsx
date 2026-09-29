@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { useRole } from "../../lib/useRole";
+import { getUsuario, logout } from "../../lib/auth";
 
 // Rotulo amigavel para o cargo informado pelo login (usuario.cargo).
 // O cargo continua resolvido apenas no frontend (sistema de permissoes
@@ -27,19 +28,12 @@ export default function Header() {
   const navigate = useNavigate();
   const { setRole } = useRole();
 
-  const usuarioLogado = localStorage.getItem("usuario");
+  const usuarioLogado = getUsuario();
   let nomeUsuario = null;
   let cargoUsuario = null;
   if (usuarioLogado) {
-    try {
-      const user = JSON.parse(usuarioLogado);
-      if (user) {
-        nomeUsuario = user.nome || user.name;
-        cargoUsuario = user.cargo ? cargoLabel(user.cargo) : null;
-      }
-    } catch {
-      // dado corrompido: deixa os rótulos vazios (sem inventar cargo/nome).
-    }
+    nomeUsuario = usuarioLogado.nome || usuarioLogado.name;
+    cargoUsuario = usuarioLogado.cargo ? cargoLabel(usuarioLogado.cargo) : null;
   }
   if (!nomeUsuario) nomeUsuario = "Administrador";
   if (!cargoUsuario) cargoUsuario = "Administrador";
@@ -52,8 +46,7 @@ export default function Header() {
   });
 
   const handleLogout = () => {
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("token");
+    logout();
     setRole(null);
     navigate("/login");
   };
