@@ -18,7 +18,11 @@ const ROTAS_PUBLICAS = ['/usuario/login', '/frequencia/check-in', '/aluno/cpf/']
  * cabeçalho ou corpo da requisição.
  */
 api.interceptors.request.use((config) => {
-  const token = getToken();
+  // Rotas públicas (login/check-in) NÃO recebem o token: se o navegador ainda
+  // tiver um token antigo/expirado guardado, ele não deve influenciar o login.
+  const url = String(config.url || '');
+  const rotaPublica = ROTAS_PUBLICAS.some((rota) => url.includes(rota));
+  const token = rotaPublica ? null : getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -36,9 +40,12 @@ api.interceptors.response.use(
     const url = String(error?.config?.url || '');
     const rotaPublica = ROTAS_PUBLICAS.some((rota) => url.includes(rota));
 
-    if (status === 401 && !rotaPublica) {
+    if (status === 401) {
+      // Descarta a sessão em QUALQUER 401 — inclusive em rota pública. Sem isso,
+      // um token inválido/expirado ficava preso no localStorage e o login era
+      // recusado em loop com "Autenticação necessária. Faça login novamente.".
       limparSessao();
-      if (!window.location.pathname.startsWith('/login')) {
+      if (!rotaPublica && !window.location.pathname.startsWith('/login')) {
         window.location.assign('/login');
       }
     }

@@ -249,6 +249,69 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
 
   const [salvando, setSalvando] = useState(false);
 
+  // Código de ativação do acesso mobile (exibido UMA vez após o cadastro).
+  // Vem do cabeçalho X-Codigo-Ativacao do POST /api/aluno; nunca é buscado
+  // de novo nem aparece em listagens — a recepção informa ao aluno na hora.
+  const [codigoAtivacao, setCodigoAtivacao] = useState('');
+  const [codigoCopiado, setCodigoCopiado] = useState(false);
+  // Demais resultados do POST /api/aluno (headers X-Conta-Ativa / X-Aviso-Ativacao).
+  const [contaAtiva, setContaAtiva] = useState(false);
+  const [avisoAtivacao, setAvisoAtivacao] = useState('');
+  // Em modal, o fechamento é adiado até a recepção concluir a leitura do
+  // código/aviso (ver concluirCadastroModal).
+  const [aguardandoConclusaoModal, setAguardandoConclusaoModal] = useState(false);
+  const infoAtivacaoRef = useRef(null);
+
+  /** Lê um header ignorando caixa (Axios normaliza para minúsculas). */
+  const lerCabecalho = (headers, nome) => {
+    if (!headers) return '';
+    if (typeof headers.get === 'function') {
+      const viaGet = headers.get(nome) ?? headers.get(nome.toLowerCase());
+      if (viaGet) return String(viaGet);
+    }
+    const alvo = String(nome).toLowerCase();
+    for (const chave of Object.keys(headers)) {
+      if (chave.toLowerCase() === alvo) return String(headers[chave] ?? '');
+    }
+    return '';
+  };
+
+  const textoAvisoAtivacao = (aviso) => {
+    if (!aviso) return '';
+    if (aviso === 'codigo-nao-gerado') {
+      return 'Cadastro concluído, mas o código de ativação não foi disponibilizado. Gere um novo código para o aluno quando possível.';
+    }
+    return `Cadastro concluído com aviso de ativação: ${aviso}.`;
+  };
+
+  const copiarCodigo = async () => {
+    if (!codigoAtivacao) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(codigoAtivacao);
+      } else {
+        // Fallback p/ contextos sem Clipboard API (HTTP / permissões).
+        const area = document.createElement('textarea');
+        area.value = codigoAtivacao;
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        document.body.removeChild(area);
+      }
+      setCodigoCopiado(true);
+      setTimeout(() => setCodigoCopiado(false), 2000);
+    } catch {
+      // Clipboard indisponível (permissão): o código continua visível p/ ditado.
+      setCodigoCopiado(false);
+    }
+  };
+
+  /** Fecha o modal / navega somente após a recepção ver o código/aviso. */
+  const concluirCadastroModal = () => {
+    setAguardandoConclusaoModal(false);
+    if (onSucesso) onSucesso(infoAtivacaoRef.current?.aluno || null, infoAtivacaoRef.current?.info || null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const novosErros = {};
@@ -263,9 +326,20 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
     }
 
     // O CEP vai apenas com dígitos (mesmo formato usado em Funcionários) e os
-    // campos opcionais vazios viram null.
+    // campos opcionais vazios viram null. Datas vazias ("") TAMBÉM viram null:
+    // sem isto o Jackson tenta desserializar "" em LocalDate e o POST cai em
+    // 400 genérico ("Dados obrigatórios ausentes ou em formato inválido").
+    const vazioParaNulo = (v) => {
+      const t = String(v ?? '').trim();
+      return t === '' ? null : t;
+    };
     const payload = {
       ...form,
+      dataNascimento: vazioParaNulo(form.dataNascimento),
+      dataMatricula: vazioParaNulo(form.dataMatricula),
+      sexo: vazioParaNulo(form.sexo),
+      telefone: vazioParaNulo(form.telefone),
+      email: vazioParaNulo(form.email),
       cep: somenteDigitos(form.cep) || null,
       logradouro: form.logradouro.trim() || null,
       numero: form.numero.trim() || null,
@@ -293,6 +367,24 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
       } else {
         const r = await api.post('/aluno', { ...payload, dataMatricula: obterDataHoje(), situacao: 'ATIVO' });
         const novo = r.data;
+        // Código de ativação (uso único): cabeçalhos da resposta do cadastro.
+        // - X-Codigo-Ativacao: código a entregar ao aluno (só neste momento).
+        // - X-Conta-Ativa: true = aluno já tem acesso mobile (sem código novo).
+        // - X-Aviso-Ativacao: cadastro ok, mas código não gerado (explicar).
+        // O Axios normaliza os nomes p/ minúsculas; a leitura é case-insensitive.
+        const codigo = lerCabecalho(r.headers, 'X-Codigo-Ativacao');
+        const ehContaAtiva = lerCabecalho(r.headers, 'X-Conta-Ativa') === 'true';
+        const aviso = lerCabecalho(r.headers, 'X-Aviso-Ativacao');
+        const infoAtivacao = {
+          codigo: ehContaAtiva ? '' : codigo,
+          contaAtiva: ehContaAtiva,
+          aviso,
+        };
+        infoAtivacaoRef.current = { aluno: novo || null, info: infoAtivacao };
+        setCodigoAtivacao(ehContaAtiva ? '' : codigo);
+        setContaAtiva(ehContaAtiva);
+        setAvisoAtivacao(ehContaAtiva ? '' : aviso);
+        setCodigoCopiado(false);
         if (planoSel && novo && novo.id) {
           await api.post('/mensalidade', {
             aluno: { id: novo.id },
@@ -301,7 +393,15 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
             status: 'PENDENTE'
           });
         }
-        setMessage('✅ Aluno cadastrado com sucesso e primeira mensalidade gerada!');
+        if (ehContaAtiva) {
+          setMessage('✅ Aluno cadastrado com sucesso! O aluno já possui acesso mobile ativo, por isso nenhum código novo foi gerado.');
+        } else if (codigo) {
+          setMessage('✅ Aluno cadastrado com sucesso!');
+        } else if (aviso) {
+          setMessage(`✅ ${textoAvisoAtivacao(aviso)}`);
+        } else {
+          setMessage('✅ Aluno cadastrado com sucesso! Cadastro concluído, mas o código de ativação não foi disponibilizado.');
+        }
         setForm(estadoInicial());
         setEnderecoLegado('');
         setContatoLegadoImportado(false);
@@ -311,11 +411,41 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
         // RODADA 2: em modal, o fechamento/atualização da lista é
         // responsabilidade do chamador (/alunos). Os dados digitados são
         // preservados em caso de erro (só limpa no sucesso acima).
-        if (onSucesso) onSucesso(novo || null);
+        // Se houver código/aviso p/ a recepção ler, o modal permanece aberto
+        // até a confirmação ("Entendi, fechar"); senão fecha de imediato.
+        if (emModal && (infoAtivacao.codigo || infoAtivacao.aviso)) {
+          setAguardandoConclusaoModal(true);
+        } else if (onSucesso) {
+          onSucesso(novo || null, infoAtivacao);
+        }
       }
     } catch (err) {
       console.error(err);
-      setMessage(id ? '❌ Erro ao atualizar aluno.' : '❌ Erro ao cadastrar aluno.');
+      // Falha: nenhuma confirmação de sucesso nem código anterior permanece.
+      setCodigoAtivacao('');
+      setContaAtiva(false);
+      setAvisoAtivacao('');
+      setCodigoCopiado(false);
+      setAguardandoConclusaoModal(false);
+      infoAtivacaoRef.current = null;
+      // Mostra o motivo REAL devolvido pelo backend (ex.: "CPF inválido...",
+      // "Informe um e-mail válido.", "Já existe um aluno...") em vez de uma
+      // mensagem genérica — e destaca o campo apontado em `campo`.
+      const dados = err?.response?.data;
+      const msgBackend = (dados?.erro || dados?.message || '').trim();
+      const campo = dados?.campo;
+      if (campo) {
+        setErros((atual) => ({ ...atual, [campo]: msgBackend || 'Verifique este campo.' }));
+      }
+      const status = err?.response?.status;
+      const detalhe = msgBackend ? ` ${msgBackend}` : '';
+      setMessage(
+        id
+          ? `❌ Erro ao atualizar aluno.${detalhe}`
+          : (status === 409
+              ? `❌ Cadastro duplicado.${detalhe}`
+              : `❌ Erro ao cadastrar aluno.${detalhe || ' Confira CPF, e-mail e nome.'}`)
+      );
     } finally {
       setSalvando(false);
     }
@@ -327,6 +457,51 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
         <div className={`form-message ${message.includes('✅') ? 'success' : 'error'}`} style={{ marginBottom: emModal ? 12 : 20 }}>
           {message.includes('✅') ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
           <span>{message.replace('✅ ', '').replace('❌ ', '')}</span>
+        </div>
+      )}
+
+      {/* Confirmação do cadastro atual: código de ativação mobile (uso único).
+          Exibido SOMENTE aqui, logo após o POST /api/aluno — nunca em
+          listagens, consultas ou telas de outros alunos. */}
+      {codigoAtivacao && (
+        <div className="form-message success" style={{ marginBottom: emModal ? 12 : 20, display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+          <CheckCircle2 size={18} style={{ marginTop: 2 }} />
+          <span style={{ flex: '1 1 220px' }}>
+            <strong>Aluno cadastrado com sucesso!</strong>
+            <br />
+            <span>Código de ativação: </span>
+            <code style={{ fontSize: '1.25em', fontWeight: 700, letterSpacing: 2 }}>{codigoAtivacao}</code>
+            <br />
+            <span>Entregue este código ao aluno para que ele ative sua conta no aplicativo GERENCIA e crie sua própria senha.</span>
+          </span>
+          <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={copiarCodigo}>
+              {codigoCopiado ? 'Copiado!' : 'Copiar código'}
+            </button>
+            {emModal && aguardandoConclusaoModal && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={concluirCadastroModal}>
+                Entendi, fechar
+              </button>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Cadastro concluído com aviso do backend (sem código): explicação
+          compreensível + conclusão do modal adiada p/ leitura da recepção. */}
+      {!codigoAtivacao && !contaAtiva && avisoAtivacao && (
+        <div className="form-message success" style={{ marginBottom: emModal ? 12 : 20, display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+          <AlertCircle size={18} style={{ marginTop: 2 }} />
+          <span style={{ flex: '1 1 220px' }}>
+            <strong>Aluno cadastrado com sucesso!</strong>
+            <br />
+            <span>{textoAvisoAtivacao(avisoAtivacao)}</span>
+          </span>
+          {emModal && aguardandoConclusaoModal && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={concluirCadastroModal}>
+              Entendi, fechar
+            </button>
+          )}
         </div>
       )}
 

@@ -7,6 +7,8 @@ import AlunoForm from './AlunoForm';
 // Criação SEM ?id e edição COM ?id=NN. O formulário real vive em AlunoForm
 // (mesmo componente usado no modal "+ Novo aluno" da página /alunos).
 // Após salvar pela página, mantém o comportamento anterior: volta p/ /alunos.
+// Se houver código/aviso de ativação p/ a recepção ler, a navegação espera
+// (a confirmação fica visível no formulário).
 // ============================================================================
 export default function Cadastro() {
   const [searchParams] = useSearchParams();
@@ -19,8 +21,9 @@ export default function Cadastro() {
         idAluno={id}
         modo="pagina"
         formId="aluno-form-pagina"
-        onSucesso={() => {
-          setTimeout(() => navigate('/alunos'), 1500);
+        onSucesso={(aluno, infoAtivacao) => {
+          const esperaLeitura = Boolean(infoAtivacao?.codigo || infoAtivacao?.aviso);
+          setTimeout(() => navigate('/alunos'), esperaLeitura ? 15000 : 1500);
         }}
       />
     </div>
