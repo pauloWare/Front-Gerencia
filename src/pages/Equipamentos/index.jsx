@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../../service/api';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { FormField } from '../../components/ui/field';
-import { Plus, Save, X, AlertCircle } from 'lucide-react';
+import { Plus, Save, X, AlertCircle, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
 
 // ============================================================================
 // RODADA 5 — Equipamentos: Tipo (ex.: "Esteira") x Identificação ("Esteira 04").
@@ -33,6 +34,11 @@ export default function Equipamentos() {
   const [editando, setEditando] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  // Exclusão com confirmação padronizada e feedback no topo da página
+  const [excluirEquip, setExcluirEquip] = useState(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState('');
+  const [sucessoExclusao, setSucessoExclusao] = useState('');
   const [form, setForm] = useState(formVazio());
   // RODADA 5: tipo digitado + identificação gerada pelo backend (não editável).
   const [tipo, setTipo] = useState('');
@@ -113,14 +119,21 @@ export default function Equipamentos() {
     timerTipo.current = setTimeout(() => gerarIdentificacao(valor), 400);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Deseja excluir este equipamento?')) {
-      try {
-        await api.delete(`/manutencao/${id}`);
-        buscarEquipamentos();
-      } catch (error) {
-        console.error('Erro ao excluir:', error);
-      }
+  const confirmarExclusao = async () => {
+    if (!excluirEquip) return;
+    setExcluindo(true);
+    setErroExclusao('');
+    try {
+      await api.delete(`/manutencao/${excluirEquip.id}`);
+      setExcluirEquip(null);
+      setSucessoExclusao(`Equipamento "${excluirEquip.nome}" excluído com sucesso.`);
+      buscarEquipamentos();
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      setErroExclusao(error.response?.data?.erro || 'Erro ao excluir o equipamento.');
+      setExcluirEquip(null);
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -169,15 +182,26 @@ export default function Equipamentos() {
 
   return (
     <>
+      {erroExclusao && (
+        <div className="form-message error" style={{ marginBottom: 16 }} role="alert">
+          <AlertCircle size={16} /> {erroExclusao}
+        </div>
+      )}
+      {sucessoExclusao && (
+        <div className="form-message success" style={{ marginBottom: 16 }} role="status">
+          <CheckCircle2 size={16} /> {sucessoExclusao}
+        </div>
+      )}
+
       <div className="toolbar">
         <div className="toolbar-left">
           <div className="search-bar">
-            <input type="text" placeholder="Buscar por nome, marca ou localização..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input type="text" placeholder="Buscar por nome, marca ou localização..." aria-label="Buscar equipamento por nome, marca ou localização" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <span className="record-count">{filtered.length} registro{filtered.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="toolbar-right">
-          <button className="btn btn-primary btn-sm" onClick={abrirCriar} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="btn btn-primary btn-sm" onClick={abrirCriar}>
             <Plus size={14} /> Novo Equipamento
           </button>
         </div>
@@ -206,8 +230,16 @@ export default function Equipamentos() {
                   <td><span className={`status-badge ${eq.situacao === 'ATIVO' ? 'ATIVO' : 'INATIVO'}`}>{eq.situacao}</span></td>
                   <td>
                     <div className="actions">
-                      <button onClick={() => abrirEditar(eq)} className="btn btn-secondary btn-xs">Editar</button>
-                      <button onClick={() => handleDelete(eq.id)} className="btn btn-danger btn-xs">Excluir</button>
+                      <button onClick={() => abrirEditar(eq)} className="btn btn-secondary btn-xs">
+                        <Pencil size={12} /> Editar
+                      </button>
+                      <button
+                        onClick={() => { setErroExclusao(''); setSucessoExclusao(''); setExcluirEquip(eq); }}
+                        className="btn btn-danger btn-xs"
+                        aria-label={`Excluir equipamento ${eq.nome}`}
+                      >
+                        <Trash2 size={12} /> Excluir
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -268,16 +300,27 @@ export default function Equipamentos() {
             </FormField>
             {erro && <div className="form-message error" style={{ marginBottom: 0 }}><AlertCircle size={14} /> {erro}</div>}
             <DialogFooter className="dialog-footer">
-              <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setAbrirNovo(false)}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAbrirNovo(false)}>
                 <X size={14} /> Cancelar
               </button>
-              <button type="submit" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={salvando || (gerandoId && !editando)}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={salvando || (gerandoId && !editando)}>
                 <Save size={14} /> {salvando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Salvar equipamento'}
               </button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Exclusão de equipamento — confirmação padronizada */}
+      <ConfirmDialog
+        open={!!excluirEquip}
+        titulo="Excluir equipamento"
+        mensagem={excluirEquip ? `Deseja excluir este equipamento? Essa ação não pode ser desfeita. (${excluirEquip.nome})` : ''}
+        rotuloConfirmar="Excluir"
+        processando={excluindo}
+        aoConfirmar={confirmarExclusao}
+        aoCancelar={() => setExcluirEquip(null)}
+      />
     </>
   );
 }

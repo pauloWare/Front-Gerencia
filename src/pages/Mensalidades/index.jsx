@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../service/api';
-import { Banknote, CalendarCheck, AlertCircle, X } from 'lucide-react';
+import { Banknote, CalendarCheck, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { FormField } from '../../components/ui/field';
 import { MoneyInput } from '../../components/ui/money-input';
@@ -45,7 +45,8 @@ export default function Mensalidades() {
   const [pagamento, setPagamento] = useState(null);
   const [formPagamento, setFormPagamento] = useState({ valor: '', dataPagamento: '', formaPagamento: '' });
   const [salvando, setSalvando] = useState(false);
-  const [erroPagamento, setErroPagamento] = useState('');
+  const [erroPagamento, setErroPagamento] = useState({});
+  const [sucesso, setSucesso] = useState('');
 
   const hoje = obterDataHoje();
   const limiteBreve = somarDias(7);
@@ -68,7 +69,8 @@ export default function Mensalidades() {
   const abrirPagamento = (m) => {
     setPagamento(m);
     setFormPagamento({ valor: m.valor != null ? m.valor : '', dataPagamento: hoje, formaPagamento: '' });
-    setErroPagamento('');
+    setErroPagamento({});
+    setSucesso('');
   };
 
   const fecharPagamento = () => {
@@ -102,11 +104,13 @@ export default function Mensalidades() {
         formaPagamento: formPagamento.formaPagamento,
         usuarioResponsavel,
       });
+      const nomeAluno = pagamento?.aluno?.nome || 'aluno';
       fecharPagamento();
+      setSucesso(`Pagamento da mensalidade de ${nomeAluno} registrado com sucesso.`);
       await buscarMensalidades();
     } catch (error) {
       console.error('Erro ao registrar pagamento:', error);
-      setErroPagamento({ global: '❌ Erro ao registrar o pagamento.' });
+      setErroPagamento({ global: 'Erro ao registrar o pagamento.' });
     } finally {
       setSalvando(false);
     }
@@ -147,14 +151,20 @@ export default function Mensalidades() {
 
   return (
     <>
+      {sucesso && (
+        <div className="form-message success" style={{ marginBottom: 16 }} role="status">
+          <CheckCircle2 size={16} /> {sucesso}
+        </div>
+      )}
+
       <div className="toolbar">
         <div className="toolbar-left">
           <div className="search-bar">
-            <input type="text" placeholder="Buscar por aluno, plano ou status..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input type="text" placeholder="Buscar por aluno, plano ou status..." aria-label="Buscar mensalidade por aluno, plano ou status" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <span className="record-count">{filtered.length} registro{filtered.length !== 1 ? 's' : ''}</span>
         </div>
-        <div className="toolbar-right" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="toolbar-right" style={{ flexWrap: 'wrap' }}>
           {filtros.map(f => (
             <button
               key={f.chave}
@@ -196,7 +206,7 @@ export default function Mensalidades() {
                   <td>
                     <div className="actions">
                       {m.statusExibicao !== 'PAGA' ? (
-                        <button onClick={() => abrirPagamento(m)} className="btn btn-primary btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <button onClick={() => abrirPagamento(m)} className="btn btn-primary btn-xs">
                           <Banknote size={12} /> Registrar pagamento
                         </button>
                       ) : (
@@ -254,10 +264,10 @@ export default function Mensalidades() {
                   <div className="form-message error" style={{ marginBottom: 0 }}><AlertCircle size={14} /> {erroPagamento.global}</div>
                 )}
                 <DialogFooter className="dialog-footer">
-                  <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={fecharPagamento}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={fecharPagamento}>
                     <X size={14} /> Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={salvando}>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={salvando}>
                     <CalendarCheck size={14} /> {salvando ? 'Salvando...' : 'Confirmar pagamento'}
                   </button>
                 </DialogFooter>

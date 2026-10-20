@@ -10,6 +10,7 @@ import {
 import { useRole } from '../../lib/useRole';
 import { hasPermission } from '../../lib/permissions';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { FormField } from '../../components/ui/field';
 import { DateInput } from '../../components/ui/date-input';
 import { MoneyInput } from '../../components/ui/money-input';
@@ -21,6 +22,12 @@ import { MoneyInput } from '../../components/ui/money-input';
 const CARGOS = ['ADMIN', 'RECEPCIONISTA', 'FINANCEIRO', 'TECNICO'];
 const SITUACOES = ['ATIVO', 'INATIVO', 'AFASTADO'];
 const SENHA_MINIMA = 6;
+
+/** Rótulo amigável da situação exibida no badge (ex.: AFASTADO -> "Afastado"). */
+const rotuloSituacao = (situacao) => {
+  if (!situacao) return 'Inativo';
+  return situacao.charAt(0) + situacao.slice(1).toLowerCase();
+};
 
 // =========================== FORMATAÇÃO =====================================
 
@@ -116,6 +123,9 @@ export default function Funcionarios() {
   const [editando, setEditando] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const [erros, setErros] = useState({});
+  // Exclusão com confirmação padronizada (substitui window.confirm)
+  const [excluirFunc, setExcluirFunc] = useState(null);
+  const [excluindo, setExcluindo] = useState(false);
   const [form, setForm] = useState(estadoInicial());
   const [alterarSenha, setAlterarSenha] = useState(false);
   const [detalhe, setDetalhe] = useState(null);
@@ -133,7 +143,7 @@ export default function Funcionarios() {
       setFuncionarios(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Erro ao buscar funcionários:', error);
-      setErro('❌ Não foi possível carregar a lista de funcionários.');
+      setErro('Não foi possível carregar a lista de funcionários.');
     } finally {
       setLoading(false);
     }
@@ -283,24 +293,35 @@ export default function Funcionarios() {
   };
 
   /** Exclusão definitiva: o funcionário e a conta de acesso são removidos. */
-  const handleDelete = async (func) => {
-    const mensagem = temContaAcesso(func)
-      ? `Excluir "${func.nome}"? A conta de acesso (login) deste funcionário também será excluída.`
-      : `Excluir o funcionário "${func.nome}"?`;
-    if (!window.confirm(mensagem)) return;
+  const mensagemExclusao = (func) => (temContaAcesso(func)
+    ? `Excluir "${func.nome}"? A conta de acesso (login) deste funcionário também será excluída.`
+    : `Excluir o funcionário "${func.nome}"?`);
 
+  const solicitarExclusao = (func) => {
+    setErro('');
+    setSucesso('');
+    setExcluirFunc(func);
+  };
+
+  const confirmarExclusao = async () => {
+    if (!excluirFunc) return;
+    setExcluindo(true);
     setErro('');
     setSucesso('');
     try {
-      await api.delete(`/funcionario/${func.id}`);
-      setFuncionarios(funcionarios.filter((f) => f.id !== func.id));
-      setSucesso(temContaAcesso(func)
+      await api.delete(`/funcionario/${excluirFunc.id}`);
+      setFuncionarios(funcionarios.filter((f) => f.id !== excluirFunc.id));
+      setSucesso(temContaAcesso(excluirFunc)
         ? 'Funcionário e conta de acesso excluídos com sucesso.'
         : 'Funcionário excluído com sucesso.');
+      setExcluirFunc(null);
     } catch (error) {
       console.error('Erro ao excluir:', error);
       const msg = error.response?.data?.erro || error.response?.data?.error || 'Erro ao excluir funcionário.';
       setErro(msg);
+      setExcluirFunc(null);
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -408,6 +429,7 @@ export default function Funcionarios() {
             <input
               type="text"
               placeholder="Buscar por nome, cargo, CPF ou e-mail..."
+              aria-label="Buscar funcionário por nome, cargo, CPF ou e-mail"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -422,7 +444,6 @@ export default function Funcionarios() {
             <button
               className="btn btn-primary btn-sm"
               onClick={abrirNovo}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Plus size={14} /> Novo Funcionário
             </button>
@@ -465,7 +486,7 @@ export default function Funcionarios() {
                   <td className="date-friendly">{formatDate(func.dataAdmissao) || '—'}</td>
                   <td>
                     <span className={`status-badge ${func.situacao === 'ATIVO' ? 'ATIVO' : 'INATIVO'}`}>
-                      {func.situacao || 'INATIVO'}
+                      {rotuloSituacao(func.situacao)}
                     </span>
                   </td>
                   <td>
@@ -473,7 +494,6 @@ export default function Funcionarios() {
                       <button
                         className="btn btn-secondary btn-xs"
                         onClick={() => setDetalhe(func)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                       >
                         <Eye size={12} /> Detalhes
                       </button>
@@ -482,14 +502,12 @@ export default function Funcionarios() {
                           <button
                             className="btn btn-secondary btn-xs"
                             onClick={() => abrirEditar(func)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                           >
                             <Edit size={12} /> Editar
                           </button>
                           <button
                             className="btn btn-danger btn-xs"
-                            onClick={() => handleDelete(func)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            onClick={() => solicitarExclusao(func)}
                           >
                             <Trash2 size={12} /> Excluir
                           </button>
@@ -824,7 +842,6 @@ export default function Funcionarios() {
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 onClick={() => { setAbrirFormulario(false); resetarFormulario(); }}
                 disabled={salvando}
               >
@@ -834,7 +851,6 @@ export default function Funcionarios() {
                 type="submit"
                 className="btn btn-primary btn-sm"
                 disabled={salvando}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
                 <Save size={14} /> {salvando ? 'Salvando...' : (editando ? 'Atualizar' : 'Salvar')}
               </button>
@@ -858,7 +874,7 @@ export default function Funcionarios() {
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                 <strong style={{ fontSize: '1rem' }}>{detalhe.nome}</strong>
                 <span className={`status-badge ${detalhe.situacao === 'ATIVO' ? 'ATIVO' : 'INATIVO'}`}>
-                  {detalhe.situacao || 'INATIVO'}
+                  {rotuloSituacao(detalhe.situacao)}
                 </span>
                 {detalhe.cargo && <span className="status-badge FIXO">{detalhe.cargo}</span>}
               </div>
@@ -917,13 +933,23 @@ export default function Funcionarios() {
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => setDetalhe(null)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <X size={14} /> Fechar
             </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Exclusão de funcionário — confirmação padronizada */}
+      <ConfirmDialog
+        open={!!excluirFunc}
+        titulo="Excluir funcionário"
+        mensagem={excluirFunc ? `${mensagemExclusao(excluirFunc)} Essa ação não pode ser desfeita.` : ''}
+        rotuloConfirmar="Excluir"
+        processando={excluindo}
+        aoConfirmar={confirmarExclusao}
+        aoCancelar={() => setExcluirFunc(null)}
+      />
     </>
   );
 }

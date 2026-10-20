@@ -5,9 +5,11 @@ import { FormField } from '../../components/ui/field';
 import { DateInput } from '../../components/ui/date-input';
 import {
   User, Phone, MapPin, HeartPulse, Dumbbell, Calendar,
-  Check, CheckCircle2, AlertCircle, Save, Loader2,
+  Check, CheckCircle2, AlertCircle, Save, Loader2, Copy, KeyRound,
 } from 'lucide-react';
-import { PLANOS_ALUNO, estadoInicialAlunoForm } from './alunoFormUtils';
+import { PLANOS_ALUNO, estadoInicialAlunoForm, ehPlanoMensal, encontrarPlanoMensal } from './alunoFormUtils';
+import { PLANO_UNICO_TCC } from '../../lib/config';
+import { usePageSubtitle } from '../../lib/pageInfo';
 
 // ============================================================================
 // AlunoForm — formulário de cadastro/edição de aluno (reutilizável).
@@ -56,7 +58,7 @@ const formatarCep = (valor) => {
 
 const estadoInicial = estadoInicialAlunoForm;
 
-export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso = null, formId = 'aluno-form' }) {
+export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso = null, onSalvandoChange = null, onCancelar = null, formId = 'aluno-form' }) {
   // Em modo página, o id vem da prop (a página /cadastro repassa o ?id).
   // Em modo modal de criação, idAluno é null.
   const id = idAluno;
@@ -64,8 +66,25 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
 
   const [form, setForm] = useState(estadoInicial());
   const [message, setMessage] = useState('');
+  // Feedback imediato (topo do formulário): sucesso / erro / salvando têm
+  // apresentações distintas e rolam para a área visível após cada operação.
+  const [tipoMensagem, setTipoMensagem] = useState(''); // '' | 'sucesso' | 'erro'
+  const statusRef = useRef(null);
   const [planoSel, setPlanoSel] = useState(null);
   const [erros, setErros] = useState({});
+  // Nome do aluno em edição (undefined = ainda carregando) — alimenta o
+  // subtítulo do header da página /cadastro?id=.
+  const [nomeEdicao, setNomeEdicao] = useState(undefined);
+  // Estado de envio: declarado antes de qualquer useEffect que o referencia
+  // (evita TDZ em [salvando, onSalvandoChange]).
+  const [salvando, setSalvando] = useState(false);
+
+  // Header da página /cadastro?id=: "Atualize os dados de {nome}" (ou "Carregando...").
+  usePageSubtitle(
+    !emModal && id
+      ? (nomeEdicao ? `Atualize os dados de ${nomeEdicao}` : 'Carregando...')
+      : null
+  );
 
   // --- Busca de CEP (ViaCEP) ---
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -112,10 +131,13 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
         });
         setEnderecoLegado(a.endereco || '');
         setContatoLegadoImportado(importouContatoAntigo);
+        setNomeEdicao(a.nome || '');
         if (a.cep) ultimoCepBuscado.current = somenteDigitos(a.cep);
       }).catch(err => {
         console.error(err);
-        setMessage('❌ Erro ao carregar dados do aluno.');
+        setMessage('Erro ao carregar dados do aluno.');
+        setTipoMensagem('erro');
+        setNomeEdicao('');
       });
     }
   }, [id]);
@@ -125,8 +147,47 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
     setPlanoSel(p || null);
   }, [form.plano]);
 
+  // ===== Modo TCC: só o plano mensal é oferecido (filtro de interface) =====
+  const planoMensal = PLANO_UNICO_TCC ? encontrarPlanoMensal(PLANOS) : null;
+  const modoPlanoUnico = Boolean(planoMensal);
+  // Cartão fixo: o mensal (novo / aluno mensal) ou o plano original mantido.
+  const planoCartao = modoPlanoUnico
+    ? (!id || ehPlanoMensal(planoSel)
+        ? planoMensal
+        : (planoSel || (form.plano ? { nome: form.plano } : planoMensal)))
+    : null;
+  const planoAtualNaoMensal = modoPlanoUnico && Boolean(id && planoCartao && !ehPlanoMensal(planoCartao));
+  const semPlanoMensal = PLANO_UNICO_TCC && !planoMensal;
+  const textoPlanoCartao = !planoCartao ? '' : [
+    planoCartao.nome || 'Plano Mensal',
+    planoCartao.valor != null ? `R$ ${planoCartao.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null,
+    planoCartao.duracao != null ? `${planoCartao.duracao} dias` : null,
+  ].filter(Boolean).join(' — ');
+
+  // Plano mensal pré-selecionado: nunca existe estado de envio sem plano.
+  useEffect(() => {
+    if (!modoPlanoUnico || form.plano) return;
+    setForm((atual) => ({ ...atual, plano: planoMensal.nome }));
+  }, [modoPlanoUnico, form.plano, planoMensal]);
+
   // Cancela um agendamento de busca de CEP pendente ao sair da tela
   useEffect(() => () => clearTimeout(timerCep.current), []);
+
+  // Avisa o chamador (rodapé do modal) sobre o estado de envio para que o
+  // botão externo também impeça envios duplicados.
+  useEffect(() => {
+    if (onSalvandoChange) onSalvandoChange(salvando);
+  }, [salvando, onSalvandoChange]);
+
+  /** Leva o feedback (sucesso/erro/processando) para a área visível. */
+  const rolarParaStatus = () => {
+    requestAnimationFrame(() => {
+      statusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (statusRef.current && typeof statusRef.current.focus === 'function') {
+        try { statusRef.current.focus({ preventScroll: true }); } catch { /* foco opcional */ }
+      }
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -232,7 +293,7 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
         </span>
       );
     }
-    return 'Informe o CEP para preencher rua e bairro automaticamente.';
+    return 'Preencha rua e bairro automaticamente.';
   };
 
   // ============================ SALVAR ============================
@@ -246,8 +307,6 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
     h.setDate(h.getDate() + dias);
     return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
   };
-
-  const [salvando, setSalvando] = useState(false);
 
   // Código de ativação do acesso mobile (exibido UMA vez após o cadastro).
   // Vem do cabeçalho X-Codigo-Ativacao do POST /api/aluno; nunca é buscado
@@ -314,6 +373,10 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (salvando) return;
+    // Pós-sucesso em modal: exige a conclusão explícita ("Entendi, fechar")
+    // antes de qualquer novo envio — evita cadastro duplicado com o form limpo.
+    if (emModal && aguardandoConclusaoModal) return;
     const novosErros = {};
     if (!form.nome.trim()) novosErros.nome = 'Este campo é obrigatório.';
     if (!form.cpf.trim()) novosErros.cpf = 'Este campo é obrigatório.';
@@ -321,7 +384,9 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
     if (!form.plano) novosErros.plano = 'Selecione um plano.';
     setErros(novosErros);
     if (Object.keys(novosErros).length > 0) {
-      setMessage('');
+      setMessage('Verifique os campos destacados abaixo.');
+      setTipoMensagem('erro');
+      rolarParaStatus();
       return;
     }
 
@@ -350,10 +415,22 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
     };
 
     setSalvando(true);
+    // Estado de processamento visível no topo (impede envie duplicado).
+    setMessage(id ? 'Salvando alterações...' : 'Cadastrando aluno...');
+    setTipoMensagem('');
+    // Novo envio invalida qualquer resultado anterior (não mostrar código
+    // antigo como se fosse do cadastro atual).
+    setCodigoAtivacao('');
+    setContaAtiva(false);
+    setAvisoAtivacao('');
+    setCodigoCopiado(false);
+    rolarParaStatus();
     try {
       if (id) {
         await api.put(`/aluno/${id}`, { ...payload, id: Number(id) });
-        setMessage('✅ Aluno atualizado com sucesso!');
+        setMessage('Aluno atualizado com sucesso!');
+        setTipoMensagem('sucesso');
+        rolarParaStatus();
         if (emModal) {
           // Edição dentro de modal não é usada nesta rodada, mas mantém o
           // contrato: avisa o chamador sem navegar.
@@ -394,26 +471,27 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
           });
         }
         if (ehContaAtiva) {
-          setMessage('✅ Aluno cadastrado com sucesso! O aluno já possui acesso mobile ativo, por isso nenhum código novo foi gerado.');
+          setMessage('Aluno cadastrado com sucesso! O aluno já possui acesso mobile ativo, por isso nenhum código novo foi gerado.');
         } else if (codigo) {
-          setMessage('✅ Aluno cadastrado com sucesso!');
+          setMessage('Aluno cadastrado com sucesso!');
         } else if (aviso) {
-          setMessage(`✅ ${textoAvisoAtivacao(aviso)}`);
+          setMessage(textoAvisoAtivacao(aviso));
         } else {
-          setMessage('✅ Aluno cadastrado com sucesso! Cadastro concluído, mas o código de ativação não foi disponibilizado.');
+          setMessage('Aluno cadastrado com sucesso! Cadastro concluído, mas o código de ativação não foi disponibilizado.');
         }
+        setTipoMensagem('sucesso');
+        rolarParaStatus();
         setForm(estadoInicial());
         setEnderecoLegado('');
         setContatoLegadoImportado(false);
         setAvisoCep('');
         setCepPreenchido(false);
         ultimoCepBuscado.current = '';
-        // RODADA 2: em modal, o fechamento/atualização da lista é
-        // responsabilidade do chamador (/alunos). Os dados digitados são
-        // preservados em caso de erro (só limpa no sucesso acima).
-        // Se houver código/aviso p/ a recepção ler, o modal permanece aberto
-        // até a confirmação ("Entendi, fechar"); senão fecha de imediato.
-        if (emModal && (infoAtivacao.codigo || infoAtivacao.aviso)) {
+        // Em modal, o fechamento NUNCA é automático: a confirmação de sucesso
+        // (com ou sem código) permanece visível até a conclusão explícita
+        // ("Entendi, fechar"). O chamador (/alunos) fecha e atualiza a lista
+        // somente em concluirCadastroModal.
+        if (emModal) {
           setAguardandoConclusaoModal(true);
         } else if (onSucesso) {
           onSucesso(novo || null, infoAtivacao);
@@ -441,58 +519,83 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
       const detalhe = msgBackend ? ` ${msgBackend}` : '';
       setMessage(
         id
-          ? `❌ Erro ao atualizar aluno.${detalhe}`
+          ? `Erro ao atualizar aluno.${detalhe}`
           : (status === 409
-              ? `❌ Cadastro duplicado.${detalhe}`
-              : `❌ Erro ao cadastrar aluno.${detalhe || ' Confira CPF, e-mail e nome.'}`)
+              ? `Cadastro duplicado.${detalhe}`
+              : `Erro ao cadastrar aluno.${detalhe || ' Confira CPF, e-mail e nome.'}`)
       );
+      // Erro preserva os dados digitados: nenhum campo é limpo aqui.
+      setTipoMensagem('erro');
+      rolarParaStatus();
     } finally {
       setSalvando(false);
     }
   };
 
   return (
-    <>
-      {message && (
-        <div className={`form-message ${message.includes('✅') ? 'success' : 'error'}`} style={{ marginBottom: emModal ? 12 : 20 }}>
-          {message.includes('✅') ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-          <span>{message.replace('✅ ', '').replace('❌ ', '')}</span>
-        </div>
-      )}
+    <div className={emModal ? 'aluno-form aluno-form-modal' : 'aluno-form'}>
+      {/* Região de status sempre no topo: sucesso, erro e processamento têm
+          apresentações distintas e recebem foco/rolagem após cada operação. */}
+      <div
+        ref={statusRef}
+        tabIndex={-1}
+        role={tipoMensagem === 'erro' ? 'alert' : 'status'}
+        aria-live={tipoMensagem === 'erro' ? 'assertive' : 'polite'}
+        className="aluno-form-status"
+      >
+        {salvando && (
+          <div className="form-message info aluno-status-processando">
+            <Loader2 size={16} className="is-spinning" />
+            <span>{message || (id ? 'Salvando alterações...' : 'Cadastrando aluno...')}</span>
+          </div>
+        )}
+
+        {!salvando && message && tipoMensagem === 'sucesso' && (
+          <div className="form-message success aluno-status-sucesso">
+            <CheckCircle2 size={18} />
+            <span><strong>{message}</strong></span>
+          </div>
+        )}
+
+        {!salvando && message && tipoMensagem === 'erro' && (
+          <div className="form-message error aluno-status-erro">
+            <AlertCircle size={18} />
+            <span>{message}</span>
+          </div>
+        )}
+      </div>
 
       {/* Confirmação do cadastro atual: código de ativação mobile (uso único).
           Exibido SOMENTE aqui, logo após o POST /api/aluno — nunca em
           listagens, consultas ou telas de outros alunos. */}
       {codigoAtivacao && (
-        <div className="form-message success" style={{ marginBottom: emModal ? 12 : 20, display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
-          <CheckCircle2 size={18} style={{ marginTop: 2 }} />
-          <span style={{ flex: '1 1 220px' }}>
-            <strong>Aluno cadastrado com sucesso!</strong>
-            <br />
-            <span>Código de ativação: </span>
-            <code style={{ fontSize: '1.25em', fontWeight: 700, letterSpacing: 2 }}>{codigoAtivacao}</code>
-            <br />
-            <span>Entregue este código ao aluno para que ele ative sua conta no aplicativo GERENCIA e crie sua própria senha.</span>
-          </span>
-          <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+        <div className="aluno-codigo" role="status" aria-live="polite">
+          <p className="aluno-codigo-titulo">
+            <KeyRound size={16} /> Código de ativação do aluno
+          </p>
+          <div className="aluno-codigo-linha">
+            <code className="aluno-codigo-valor">{codigoAtivacao}</code>
             <button type="button" className="btn btn-secondary btn-sm" onClick={copiarCodigo}>
-              {codigoCopiado ? 'Copiado!' : 'Copiar código'}
+              <Copy size={14} /> {codigoCopiado ? 'Copiado!' : 'Copiar'}
             </button>
-            {emModal && aguardandoConclusaoModal && (
-              <button type="button" className="btn btn-primary btn-sm" onClick={concluirCadastroModal}>
-                Entendi, fechar
-              </button>
-            )}
-          </span>
+          </div>
+          <p className="aluno-codigo-ajuda">
+            Entregue este código ao aluno para que ele ative sua conta no aplicativo GERENCIA e crie sua própria senha.
+          </p>
+          {emModal && aguardandoConclusaoModal && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={concluirCadastroModal}>
+              Entendi, fechar
+            </button>
+          )}
         </div>
       )}
 
       {/* Cadastro concluído com aviso do backend (sem código): explicação
           compreensível + conclusão do modal adiada p/ leitura da recepção. */}
       {!codigoAtivacao && !contaAtiva && avisoAtivacao && (
-        <div className="form-message success" style={{ marginBottom: emModal ? 12 : 20, display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
-          <AlertCircle size={18} style={{ marginTop: 2 }} />
-          <span style={{ flex: '1 1 220px' }}>
+        <div className="form-message success aluno-aviso" role="status">
+          <AlertCircle size={18} />
+          <span>
             <strong>Aluno cadastrado com sucesso!</strong>
             <br />
             <span>{textoAvisoAtivacao(avisoAtivacao)}</span>
@@ -505,16 +608,31 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
         </div>
       )}
 
-      <form id={formId} className={emModal ? 'dialog-form' : 'theme-form'} onSubmit={handleSubmit}>
+      {/* Sucesso em modal sem código e sem aviso: confirmação explícita +
+          botão para concluir e fechar (não inventa código nem afirma ativação). */}
+      {emModal && aguardandoConclusaoModal && !salvando && tipoMensagem === 'sucesso'
+        && !codigoAtivacao && (
+        <div className="form-message success aluno-aviso" role="status">
+          <CheckCircle2 size={18} />
+          <span>
+            <span>Confira acima o resultado do cadastro.</span>
+          </span>
+          <button type="button" className="btn btn-primary btn-sm" onClick={concluirCadastroModal}>
+            Entendi, fechar
+          </button>
+        </div>
+      )}
+
+      <form id={formId} className={emModal ? 'dialog-form aluno-form-campos' : 'theme-form aluno-form-campos aluno-form-pagina'} onSubmit={handleSubmit}>
         {/* ===================== DADOS PESSOAIS ===================== */}
         <div className="form-section">
-          <h3 className="section-title"><User size={16} /> Dados Pessoais</h3>
+          <h3 className="section-title"><User size={16} /> Dados pessoais</h3>
           <div className="theme-form-row">
-            <FormField label="Nome" required error={erros.nome}>
-              <input className="theme-input" name="nome" value={form.nome} onChange={handleChange} placeholder="Nome completo" />
+            <FormField label="Nome" required error={erros.nome} className="campo-nome">
+              <input className="theme-input" name="nome" value={form.nome} onChange={handleChange} placeholder="Nome completo" disabled={salvando} />
             </FormField>
             <FormField label="CPF" required error={erros.cpf}>
-              <input className="theme-input" name="cpf" value={form.cpf} onChange={handleChange} placeholder="000.000.000-00" maxLength="14" />
+              <input className="theme-input" name="cpf" value={form.cpf} onChange={handleChange} placeholder="000.000.000-00" maxLength="14" inputMode="numeric" disabled={salvando} />
             </FormField>
           </div>
           {id ? (
@@ -523,14 +641,14 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
                 <DateInput name="dataNascimento" value={form.dataNascimento} onChange={handleChange} />
               </FormField>
               <FormField label="Sexo" error={erros.sexo}>
-                <select className="theme-select" name="sexo" value={form.sexo} onChange={handleChange}>
+                <select className="theme-select" name="sexo" value={form.sexo} onChange={handleChange} disabled={salvando}>
                   <option value="">Selecione</option>
                   <option value="M">Masculino</option>
                   <option value="F">Feminino</option>
                 </select>
               </FormField>
               <FormField label="Situação do Aluno" error={erros.situacao}>
-                <select className="theme-select" name="situacao" value={form.situacao} onChange={handleChange}>
+                <select className="theme-select" name="situacao" value={form.situacao} onChange={handleChange} disabled={salvando}>
                   {SITUACOES.map((s) => (
                     <option key={s.valor} value={s.valor}>{s.rotulo}</option>
                   ))}
@@ -543,7 +661,7 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
                 <DateInput name="dataNascimento" value={form.dataNascimento} onChange={handleChange} />
               </FormField>
               <FormField label="Sexo" error={erros.sexo}>
-                <select className="theme-select" name="sexo" value={form.sexo} onChange={handleChange}>
+                <select className="theme-select" name="sexo" value={form.sexo} onChange={handleChange} disabled={salvando}>
                   <option value="">Selecione</option>
                   <option value="M">Masculino</option>
                   <option value="F">Feminino</option>
@@ -558,19 +676,19 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
           <h3 className="section-title"><Phone size={16} /> Contato</h3>
           <div className="theme-form-row">
             <FormField label="Telefone" error={erros.telefone}>
-              <input className="theme-input" name="telefone" value={form.telefone} onChange={handleChange} placeholder="(00) 00000-0000" maxLength="15" />
+              <input className="theme-input" name="telefone" value={form.telefone} onChange={handleChange} placeholder="(00) 00000-0000" maxLength="15" inputMode="tel" disabled={salvando} />
             </FormField>
             <FormField label="Email" required error={erros.email}>
-              <input className="theme-input" type="email" name="email" value={form.email} onChange={handleChange} placeholder="email@exemplo.com" />
+              <input className="theme-input" type="email" name="email" value={form.email} onChange={handleChange} placeholder="email@exemplo.com" disabled={salvando} />
             </FormField>
           </div>
         </div>
 
         {/* ===================== ENDEREÇO ===================== */}
         <div className="form-section">
-          <h3 className="section-title"><MapPin size={16} /> Endereço</h3>
-          <div className="form-grid-cep">
-            <FormField label="CEP" hint={dicaCep()} error={erros.cep}>
+          <h3 className="section-title"><MapPin size={16} /> Endereço <span className="cell-sub">(opcional)</span></h3>
+          <div className="aluno-endereco-grid">
+            <FormField label="CEP" hint={dicaCep()} error={erros.cep} className="aluno-cep">
               <input
                 className="theme-input"
                 type="text"
@@ -580,22 +698,20 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
                 value={form.cep}
                 onChange={handleCepChange}
                 onBlur={handleCepBlur}
-                disabled={buscandoCep}
+                disabled={buscandoCep || salvando}
               />
             </FormField>
-            <FormField label="Número" error={erros.numero}>
-              <input className="theme-input" type="text" name="numero" value={form.numero} onChange={handleChange} placeholder="123" />
+            <FormField label="Rua" error={erros.logradouro} className="aluno-rua">
+              <input className="theme-input" type="text" name="logradouro" value={form.logradouro} onChange={handleChange} placeholder="Nome da rua ou avenida" disabled={salvando} />
             </FormField>
-          </div>
-          <FormField label="Rua" error={erros.logradouro}>
-            <input className="theme-input" type="text" name="logradouro" value={form.logradouro} onChange={handleChange} placeholder="Nome da rua ou avenida" />
-          </FormField>
-          <div className="theme-form-row">
-            <FormField label="Bairro" error={erros.bairro}>
-              <input className="theme-input" type="text" name="bairro" value={form.bairro} onChange={handleChange} placeholder="Bairro" />
+            <FormField label="Número" error={erros.numero} className="aluno-numero">
+              <input className="theme-input" type="text" name="numero" value={form.numero} onChange={handleChange} placeholder="123" inputMode="numeric" disabled={salvando} />
             </FormField>
-            <FormField label="Complemento" hint="Apartamento, bloco, etc. (opcional)" error={erros.complemento}>
-              <input className="theme-input" type="text" name="complemento" value={form.complemento} onChange={handleChange} placeholder="Opcional" />
+            <FormField label="Bairro" error={erros.bairro} className="aluno-bairro">
+              <input className="theme-input" type="text" name="bairro" value={form.bairro} onChange={handleChange} placeholder="Bairro" disabled={salvando} />
+            </FormField>
+            <FormField label="Complemento" error={erros.complemento} className="aluno-complemento">
+              <input className="theme-input" type="text" name="complemento" value={form.complemento} onChange={handleChange} placeholder="Opcional" disabled={salvando} />
             </FormField>
           </div>
           {enderecoLegado && !form.logradouro && !form.cep && (
@@ -607,37 +723,60 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
 
         {/* ===================== CONTATO DE EMERGÊNCIA ===================== */}
         <div className="form-section">
-          <h3 className="section-title"><HeartPulse size={16} /> Contato de Emergência</h3>
+          <h3 className="section-title"><HeartPulse size={16} /> Contato de emergência <span className="cell-sub">(opcional)</span></h3>
           <div className="theme-form-row">
             <FormField
               label="Nome"
               error={erros.contatoEmergenciaNome}
               hint={contatoLegadoImportado ? 'Valor importado do cadastro antigo.' : ''}
             >
-              <input className="theme-input" type="text" name="contatoEmergenciaNome" value={form.contatoEmergenciaNome} onChange={handleChange} placeholder="Nome completo" />
+              <input className="theme-input" type="text" name="contatoEmergenciaNome" value={form.contatoEmergenciaNome} onChange={handleChange} placeholder="Nome completo" disabled={salvando} />
             </FormField>
             <FormField label="Telefone" error={erros.contatoEmergenciaTelefone}>
-              <input className="theme-input" type="tel" name="contatoEmergenciaTelefone" value={form.contatoEmergenciaTelefone} onChange={handleChange} placeholder="(00) 00000-0000" maxLength="15" />
+              <input className="theme-input" type="tel" name="contatoEmergenciaTelefone" value={form.contatoEmergenciaTelefone} onChange={handleChange} placeholder="(00) 00000-0000" maxLength="15" inputMode="tel" disabled={salvando} />
             </FormField>
           </div>
         </div>
 
         {/* ===================== PLANO ===================== */}
         <div className="form-section">
-          <h3 className="section-title"><Dumbbell size={16} /> Plano</h3>
-          <div className="theme-form-row">
-            <FormField label="Plano Contratado" required error={erros.plano} hint="1ª mensalidade gerada automaticamente">
-              <select className="theme-select" name="plano" value={form.plano} onChange={handleChange}>
-                <option value="">Selecione um Plano</option>
-                {PLANOS.map(p => (
-                  <option key={p.nome} value={p.nome}>{p.nome} — R$ {p.valor.toFixed(2)} ({p.duracao} dias)</option>
-                ))}
-              </select>
+          <h3 className="section-title"><Dumbbell size={16} /> Plano e observações</h3>
+          <div className="aluno-plano-grid">
+            <FormField label="Plano Contratado" required error={erros.plano} hint="1ª mensalidade gerada automaticamente" className="aluno-plano">
+              {modoPlanoUnico ? (
+                <>
+                  {/* Cartão fixo e somente leitura (mesmo valor enviado no save). */}
+                  <input
+                    className="theme-input"
+                    type="text"
+                    value={textoPlanoCartao}
+                    readOnly
+                    aria-readonly="true"
+                    aria-label="Plano Contratado"
+                  />
+                  {planoAtualNaoMensal && (
+                    <span className="cell-sub">Plano mantido do cadastro original.</span>
+                  )}
+                </>
+              ) : (
+                <select className="theme-select" name="plano" value={form.plano} onChange={handleChange} disabled={salvando}>
+                  <option value="">Selecione um Plano</option>
+                  {PLANOS.map(p => (
+                    <option key={p.nome} value={p.nome}>{p.nome} — R$ {p.valor.toFixed(2)} ({p.duracao} dias)</option>
+                  ))}
+                </select>
+              )}
             </FormField>
-            <FormField label="Observações" hint="Informações complementares (opcional)">
-              <textarea className="theme-textarea" name="observacoes" value={form.observacoes} onChange={handleChange} rows={3} placeholder="Observações sobre o aluno..." />
+            <FormField label="Observações" hint="Informações complementares (opcional)" className="aluno-observacoes">
+              <textarea className="theme-textarea" name="observacoes" value={form.observacoes} onChange={handleChange} rows={3} placeholder="Observações sobre o aluno..." disabled={salvando} />
             </FormField>
           </div>
+
+          {semPlanoMensal && (
+            <div className="form-message error" role="alert">
+              <AlertCircle size={16} /> Plano Mensal não encontrado. Cadastre-o no sistema.
+            </div>
+          )}
 
           {planoSel && (
             <div className="form-group matricula-resumo">
@@ -667,15 +806,20 @@ export default function AlunoForm({ idAluno = null, modo = 'pagina', onSucesso =
         </div>
 
         {!emModal && (
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary" disabled={salvando} style={{ padding: '10px 20px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Save size={14} />
+          <div className="form-actions form-actions-sticky">
+            {onCancelar && (
+              <button type="button" className="btn btn-secondary" onClick={onCancelar} disabled={salvando}>
+                Cancelar
+              </button>
+            )}
+            <button type="submit" className="btn btn-primary" disabled={salvando} aria-busy={salvando}>
+              {salvando ? <Loader2 size={14} className="is-spinning" /> : <Save size={14} />}
               {salvando ? 'Salvando...' : (id ? 'Salvar Alterações' : 'Finalizar Cadastro')}
             </button>
           </div>
         )}
       </form>
-    </>
+    </div>
   );
 }
 
@@ -683,6 +827,8 @@ AlunoForm.propTypes = {
   idAluno: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   modo: PropTypes.oneOf(['pagina', 'modal']),
   onSucesso: PropTypes.func,
+  onSalvandoChange: PropTypes.func,
+  onCancelar: PropTypes.func,
   formId: PropTypes.string,
 };
 

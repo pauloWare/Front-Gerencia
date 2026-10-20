@@ -3,7 +3,7 @@ import { cn } from "../../lib/utils";
 import { CalendarDays } from "lucide-react";
 import PropTypes from "prop-types";
 
-const DateInput = React.forwardRef(({ className, id, value, placeholder = "DD/MM/AAAA", disabled, ...props }, ref) => (
+const DateInput = React.forwardRef(({ className, id, value, disabled, ...props }, ref) => (
   <div className="input-icon-wrapper">
     <CalendarDays size={16} className="input-icon" aria-hidden="true" />
     <input
@@ -15,9 +15,12 @@ const DateInput = React.forwardRef(({ className, id, value, placeholder = "DD/MM
       className={cn("theme-input input-with-icon", className)}
       {...props}
     />
-    {!value && !disabled && (
-      <span className="input-placeholder-overlay" aria-hidden="true">{placeholder}</span>
-    )}
+    {/* O navegador já exibe o formato nativo ("dd/mm/aaaa") dentro do campo;
+        o overlay de placeholder antigo ficava duplicado/sobreposto ao ícone. */}
+    {/* Firefox pinta um ícone nativo de calendário que não responde a CSS
+        (ver theme.css — .native-picker-cover). pointer-events:none mantém o
+        clique abrindo o seletor nativo; aria-hidden preserva a acessibilidade. */}
+    <span className="native-picker-cover" aria-hidden="true" />
   </div>
 ));
 DateInput.displayName = "DateInput";

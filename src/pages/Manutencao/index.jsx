@@ -6,8 +6,9 @@ import { DateInput } from '../../components/ui/date-input';
 import { TimeInput } from '../../components/ui/time-input';
 import { MoneyInput } from '../../components/ui/money-input';
 import { UploadInput } from '../../components/ui/upload-input';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { formatDate, formatTime } from '../../lib/dateUtils';
-import { Plus, Wrench, CalendarClock, CheckCircle, Image as ImageIcon, AlertCircle, X } from 'lucide-react';
+import { Plus, Wrench, CalendarClock, CheckCircle, CheckCircle2, Image as ImageIcon, AlertCircle, X, Trash2 } from 'lucide-react';
 
 const obterDataHoje = () => {
   const h = new Date();
@@ -62,6 +63,10 @@ export default function Manutencao() {
   const [errosChamado, setErrosChamado] = useState({});
   const [errosPrev, setErrosPrev] = useState({});
   const [errosDespesa, setErrosDespesa] = useState({});
+  // Exclusão com confirmação padronizada (substitui window.confirm)
+  const [excluir, setExcluir] = useState(null); // { tipo: 'chamado' | 'preventiva', item }
+  const [excluindo, setExcluindo] = useState(false);
+  const [sucessoExclusao, setSucessoExclusao] = useState('');
   const [formChamado, setFormChamado] = useState(formChamadoVazio());
   const [formPrev, setFormPrev] = useState(formPrevVazio());
   const [formDespesa, setFormDespesa] = useState({ valor: '', data: obterDataHoje(), descricao: '' });
@@ -106,27 +111,34 @@ export default function Manutencao() {
     }
   };
 
-  const handleDeleteChamado = async (id) => {
-    if (window.confirm('Deseja excluir este chamado?')) {
-      try {
-        await api.delete(`/manutencao/chamados/${id}`);
-        await buscarChamados();
-      } catch (error) {
-        const msg = error.response?.data?.erro || error.response?.data?.error || 'Erro ao excluir chamado.';
-        setErro(`❌ ${msg}`);
-      }
-    }
+  const solicitarExclusao = (tipo, item) => {
+    setErro('');
+    setSucessoExclusao('');
+    setExcluir({ tipo, item });
   };
 
-  const handleDeletePrev = async (id) => {
-    if (window.confirm('Deseja excluir esta manutenção preventiva?')) {
-      try {
-        await api.delete(`/manutencao/preventivas/${id}`);
+  const confirmarExclusao = async () => {
+    if (!excluir) return;
+    setExcluindo(true);
+    setErro('');
+    try {
+      if (excluir.tipo === 'chamado') {
+        await api.delete(`/manutencao/chamados/${excluir.item.id}`);
+        setSucessoExclusao('Chamado excluído com sucesso.');
+        await buscarChamados();
+      } else {
+        await api.delete(`/manutencao/preventivas/${excluir.item.id}`);
+        setSucessoExclusao('Manutenção preventiva excluída com sucesso.');
         await buscarPreventivas();
-      } catch (error) {
-        const msg = error.response?.data?.erro || error.response?.data?.error || 'Erro ao excluir preventiva.';
-        setErro(`❌ ${msg}`);
       }
+      setExcluir(null);
+    } catch (error) {
+      const msg = error.response?.data?.erro || error.response?.data?.error
+        || (excluir.tipo === 'chamado' ? 'Erro ao excluir chamado.' : 'Erro ao excluir preventiva.');
+      setErro(msg);
+      setExcluir(null);
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -189,7 +201,7 @@ export default function Manutencao() {
       await buscarChamados();
     } catch (error) {
       console.error('Erro ao criar chamado:', error);
-      setErro('❌ Erro ao criar o chamado.');
+      setErro('Erro ao criar o chamado.');
     } finally {
       setSalvando(false);
     }
@@ -252,7 +264,7 @@ export default function Manutencao() {
       setFormDespesa({ valor: '', data: obterDataHoje(), descricao: '' });
     } catch (error) {
       console.error('Erro ao concluir manutenção:', error);
-      setErro('❌ Não foi possível concluir a manutenção.');
+      setErro('Não foi possível concluir a manutenção.');
     } finally {
       setSalvando(false);
     }
@@ -288,7 +300,7 @@ export default function Manutencao() {
       await buscarPreventivas();
     } catch (error) {
       console.error('Erro ao criar preventiva:', error);
-      setErro('❌ Erro ao criar a manutenção preventiva.');
+      setErro('Erro ao criar a manutenção preventiva.');
     } finally {
       setSalvando(false);
     }
@@ -312,7 +324,16 @@ export default function Manutencao() {
 
   return (
     <>
-      {erro && <div className="form-message error" style={{ marginBottom: 16 }}>{erro}</div>}
+      {erro && (
+        <div className="form-message error" style={{ marginBottom: 16 }} role="alert">
+          <AlertCircle size={16} /> {erro}
+        </div>
+      )}
+      {sucessoExclusao && (
+        <div className="form-message success" style={{ marginBottom: 16 }} role="status">
+          <CheckCircle2 size={16} /> {sucessoExclusao}
+        </div>
+      )}
 
       <div className="tabs">
         <button className={`tab ${aba === 'corretivas' ? 'active' : ''}`} onClick={() => setAba('corretivas')}>
@@ -328,7 +349,7 @@ export default function Manutencao() {
           <div className="toolbar">
             <div className="toolbar-left">
               <div className="search-bar">
-                <input type="text" placeholder="Buscar por equipamento, problema ou status..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                <input type="text" placeholder="Buscar por equipamento, problema ou status..." aria-label="Buscar chamado por equipamento, problema ou status" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <span className="record-count">{filtroChamados.length} registro{filtroChamados.length !== 1 ? 's' : ''}</span>
             </div>
@@ -336,7 +357,6 @@ export default function Manutencao() {
               <button
                 className="btn btn-primary btn-sm"
                 onClick={() => { setNovoChamado(true); setErro(''); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 <Plus size={14} /> Novo Chamado
               </button>
@@ -383,16 +403,18 @@ export default function Manutencao() {
                       <td>
                         <div className="actions">
                           {ch.fotoBase64 && (
-                            <button onClick={() => setImagemAmpliada(ch.fotoBase64)} className="btn btn-secondary btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Visualizar imagem">
+                            <button onClick={() => setImagemAmpliada(ch.fotoBase64)} className="btn btn-secondary btn-xs" title="Visualizar imagem">
                               <ImageIcon size={12} /> Imagem
                             </button>
                           )}
                           {ch.status !== 'FINALIZADO' && (
-                            <button onClick={() => abrirConcluir('chamado', ch)} className="btn btn-success btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button onClick={() => abrirConcluir('chamado', ch)} className="btn btn-success btn-xs">
                               <CheckCircle size={12} /> Concluir
                             </button>
                           )}
-                          <button onClick={() => handleDeleteChamado(ch.id)} className="btn btn-danger btn-xs">Excluir</button>
+                          <button onClick={() => solicitarExclusao('chamado', ch)} className="btn btn-danger btn-xs" aria-label={`Excluir chamado ${ch.id}`}>
+                            <Trash2 size={12} /> Excluir
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -409,7 +431,7 @@ export default function Manutencao() {
           <div className="toolbar">
             <div className="toolbar-left">
               <div className="search-bar">
-                <input type="text" placeholder="Buscar por equipamento, serviço ou status..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                <input type="text" placeholder="Buscar por equipamento, serviço ou status..." aria-label="Buscar preventiva por equipamento, serviço ou status" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <span className="record-count">{filtroPreventivas.length} registro{filtroPreventivas.length !== 1 ? 's' : ''}</span>
             </div>
@@ -417,7 +439,6 @@ export default function Manutencao() {
               <button
                 className="btn btn-primary btn-sm"
                 onClick={() => { setNovaPrev(true); setErro(''); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 <Plus size={14} /> Nova Preventiva
               </button>
@@ -456,11 +477,13 @@ export default function Manutencao() {
                       <td>
                         <div className="actions">
                           {p.statusExibicao !== 'CONCLUIDA' && (
-                            <button onClick={() => abrirConcluir('preventiva', p)} className="btn btn-success btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button onClick={() => abrirConcluir('preventiva', p)} className="btn btn-success btn-xs">
                               <CheckCircle size={12} /> Concluir
                             </button>
                           )}
-                          <button onClick={() => handleDeletePrev(p.id)} className="btn btn-danger btn-xs">Excluir</button>
+                          <button onClick={() => solicitarExclusao('preventiva', p)} className="btn btn-danger btn-xs" aria-label="Excluir manutenção preventiva">
+                            <Trash2 size={12} /> Excluir
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -526,10 +549,10 @@ export default function Manutencao() {
             </div>
             {erro && <div className="form-message error" style={{ marginBottom: 0 }}><AlertCircle size={14} /> {erro}</div>}
             <DialogFooter className="dialog-footer">
-              <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setNovoChamado(false)}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNovoChamado(false)}>
                 <X size={14} /> Cancelar
               </button>
-              <button type="submit" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={salvando}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={salvando}>
                 <Wrench size={14} /> {salvando ? 'Salvando...' : 'Abrir chamado'}
               </button>
             </DialogFooter>
@@ -583,10 +606,10 @@ export default function Manutencao() {
             </p>
             {erro && <div className="form-message error" style={{ marginBottom: 0 }}><AlertCircle size={14} /> {erro}</div>}
             <DialogFooter className="dialog-footer">
-              <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setNovaPrev(false)}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNovaPrev(false)}>
                 <X size={14} /> Cancelar
               </button>
-              <button type="submit" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={salvando}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={salvando}>
                 <CalendarClock size={14} /> {salvando ? 'Salvando...' : 'Agendar manutenção'}
               </button>
             </DialogFooter>
@@ -632,10 +655,10 @@ export default function Manutencao() {
                 </div>
                 {erro && <div className="form-message error" style={{ marginBottom: 0 }}><AlertCircle size={14} /> {erro}</div>}
                 <DialogFooter className="dialog-footer">
-                  <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setConcluir(null)} disabled={salvando}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setConcluir(null)} disabled={salvando}>
                     <X size={14} /> Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={salvando}>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={salvando}>
                     <CheckCircle size={14} /> {salvando ? 'Concluindo...' : 'Concluir manutenção'}
                   </button>
                 </DialogFooter>
@@ -660,6 +683,21 @@ export default function Manutencao() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Exclusão de chamado/preventiva — confirmação padronizada */}
+      <ConfirmDialog
+        open={!!excluir}
+        titulo={excluir?.tipo === 'chamado' ? 'Excluir chamado' : 'Excluir manutenção preventiva'}
+        mensagem={
+          excluir
+            ? `${excluir.tipo === 'chamado' ? 'Deseja excluir este chamado?' : 'Deseja excluir esta manutenção preventiva?'} Essa ação não pode ser desfeita.`
+            : ''
+        }
+        rotuloConfirmar="Excluir"
+        processando={excluindo}
+        aoConfirmar={confirmarExclusao}
+        aoCancelar={() => setExcluir(null)}
+      />
     </>
   );
 }

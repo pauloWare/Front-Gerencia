@@ -1,6 +1,16 @@
 import api from "../../service/api";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  Pencil, Trash2, Plus, ArrowLeft, Dumbbell,
+  AlertCircle, CheckCircle2,
+} from "lucide-react";
+import { ConfirmDialog } from "../../components/ui/confirm-dialog";
+import { FormField } from "../../components/ui/field";
+
+/** Cargo com poder de gerenciar treinos (legado usa `status`, sessão atual usa `cargo`). */
+const podeGerenciar = (usuario) =>
+  usuario?.status === "admin" || usuario?.cargo === "ADMIN";
 
 export default function Treino() {
   const { id } = useParams();
@@ -14,6 +24,10 @@ export default function Treino() {
   const [editandoTreinoId, setEditandoTreinoId] = useState(null);
   const [exercicioForm, setExercicioForm] = useState({ nome: "", series: "", repeticoes: "", carga: "", observacao: "" });
   const [exercicioTreinoId, setExercicioTreinoId] = useState(null);
+  const [feedback, setFeedback] = useState({ tipo: "", texto: "" });
+  const [excluirTreino, setExcluirTreino] = useState(null);
+  const [excluirExercicio, setExcluirExercicio] = useState(null);
+  const [excluindo, setExcluindo] = useState(false);
 
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem("usuario");
@@ -59,30 +73,33 @@ export default function Treino() {
 
   const handleSubmitTreino = async (e) => {
     e.preventDefault();
-    if (!usuario || usuario.status !== "admin") {
-      alert("Apenas administradores podem gerenciar treinos.");
+    if (!podeGerenciar(usuario)) {
+      setFeedback({ tipo: "error", texto: "Apenas administradores podem gerenciar treinos." });
       return;
     }
     if (!alunoSelecionadoId) {
-      alert("Selecione um aluno!");
+      setFeedback({ tipo: "error", texto: "Selecione um aluno para salvar o treino." });
       return;
     }
     try {
-      const payload = { 
-        nomeTreino: formTreino.nomeTreino, 
-        descricao: formTreino.descricao, 
-        usuario: { id: Number(alunoSelecionadoId) } 
+      const payload = {
+        nomeTreino: formTreino.nomeTreino,
+        descricao: formTreino.descricao,
+        usuario: { id: Number(alunoSelecionadoId) }
       };
       if (editandoTreinoId) {
         await api.put(`/treino/${editandoTreinoId}`, payload);
+        setFeedback({ tipo: "success", texto: "Treino atualizado com sucesso." });
       } else {
         await api.post("/treino", payload);
+        setFeedback({ tipo: "success", texto: "Treino adicionado com sucesso." });
       }
       setFormTreino({ nomeTreino: "", descricao: "" });
       setEditandoTreinoId(null);
       carregarTreinos();
     } catch (error) {
       console.error("Erro ao salvar treino:", error);
+      setFeedback({ tipo: "error", texto: "Não foi possível salvar o treino. Tente novamente." });
     }
   };
 
@@ -92,20 +109,26 @@ export default function Treino() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDeletarTreino = async (treinoId) => {
-    if (!window.confirm("Excluir este treino e todos os seus exercícios?")) return;
+  const confirmarExclusaoTreino = async () => {
+    if (!excluirTreino) return;
+    setExcluindo(true);
     try {
-      await api.delete(`/treino/${treinoId}`);
+      await api.delete(`/treino/${excluirTreino}`);
+      setExcluirTreino(null);
+      setFeedback({ tipo: "success", texto: "Treino excluído com sucesso." });
       carregarTreinos();
     } catch (error) {
       console.error("Erro ao deletar treino:", error);
+      setFeedback({ tipo: "error", texto: "Não foi possível excluir o treino. Tente novamente." });
+    } finally {
+      setExcluindo(false);
     }
   };
 
   const handleSubmitExercicio = async (e, treinoId) => {
     e.preventDefault();
-    if (!usuario || usuario.status !== "admin") {
-      alert("Apenas administradores podem gerenciar treinos.");
+    if (!podeGerenciar(usuario)) {
+      setFeedback({ tipo: "error", texto: "Apenas administradores podem gerenciar treinos." });
       return;
     }
     try {
@@ -116,45 +139,63 @@ export default function Treino() {
       await api.put(`/treino/${treinoId}`, { ...treino, exercicios: exerciciosAtualizados });
       setExercicioForm({ nome: "", series: "", repeticoes: "", carga: "", observacao: "" });
       setExercicioTreinoId(null);
+      setFeedback({ tipo: "success", texto: "Exercício adicionado com sucesso." });
       carregarTreinos();
     } catch (error) {
       console.error("Erro ao adicionar exercício:", error);
+      setFeedback({ tipo: "error", texto: "Não foi possível adicionar o exercício. Tente novamente." });
     }
   };
 
-  const handleDeletarExercicio = async (treinoId, exercicioId) => {
-    if (!window.confirm("Excluir este exercício?")) return;
+  const confirmarExclusaoExercicio = async () => {
+    if (!excluirExercicio) return;
+    setExcluindo(true);
     try {
-      const treino = treinos.find(t => t.id === treinoId);
+      const treino = treinos.find(t => t.id === excluirExercicio.treinoId);
       if (!treino) return;
-      const exerciciosAtualizados = (treino.exercicios || []).filter(ex => ex.id !== exercicioId);
-      await api.put(`/treino/${treinoId}`, { ...treino, exercicios: exerciciosAtualizados });
+      const exerciciosAtualizados = (treino.exercicios || []).filter(ex => ex.id !== excluirExercicio.exercicioId);
+      await api.put(`/treino/${excluirExercicio.treinoId}`, { ...treino, exercicios: exerciciosAtualizados });
+      setExcluirExercicio(null);
+      setFeedback({ tipo: "success", texto: "Exercício excluído com sucesso." });
       carregarTreinos();
     } catch (error) {
       console.error("Erro ao deletar exercício:", error);
+      setFeedback({ tipo: "error", texto: "Não foi possível excluir o exercício. Tente novamente." });
+    } finally {
+      setExcluindo(false);
     }
   };
 
-  if (!usuario) return <div className="container"><p>Carregando...</p></div>;
+  if (!usuario) return <div className="loading">Carregando...</div>;
+
+  const isAdmin = podeGerenciar(usuario);
 
   return (
-    <div className="container">
-      <h2 className="form-title">Gerenciar Treinos — Aluno #{alunoSelecionadoId || "Não selecionado"}</h2>
+    <>
+      <div className="theme-card" style={{ marginBottom: 20 }}>
+        <h2 className="section-title"><Dumbbell size={16} /> Gerenciar Treinos{alunoSelecionadoId ? ` — Aluno #${alunoSelecionadoId}` : ''}</h2>
 
-      {usuario.status !== "admin" && (
-        <p className="info-text" style={{ textAlign: "center", color: "#fff", marginBottom: 16 }}>
-          Apenas administradores podem gerenciar treinos.
-        </p>
-      )}
+        {feedback.texto && (
+          <div className={`form-message ${feedback.tipo === 'success' ? 'success' : 'error'}`} role={feedback.tipo === 'error' ? 'alert' : 'status'}>
+            {feedback.tipo === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            <span>{feedback.texto}</span>
+          </div>
+        )}
 
-      {/* Seletor de Aluno */}
-      {usuario.status === "admin" && (
-        <div className="section">
-          <div className="form-group">
-            <label>Selecionar Aluno</label>
-            <select 
-              className="input" 
-              value={alunoSelecionadoId} 
+        {!isAdmin && (
+          <p className="form-message error" role="alert">
+            <AlertCircle size={16} />
+            <span>Apenas administradores podem gerenciar treinos.</span>
+          </p>
+        )}
+
+        {/* Seletor de Aluno */}
+        {isAdmin && (
+          <FormField label="Selecionar Aluno" htmlFor="treino-aluno">
+            <select
+              id="treino-aluno"
+              className="theme-select"
+              value={alunoSelecionadoId}
               onChange={handleAlunoChange}
               required
             >
@@ -163,87 +204,89 @@ export default function Treino() {
                 <option key={u.id} value={u.id}>{u.nome} (ID: {u.id})</option>
               ))}
             </select>
-          </div>
-        </div>
-      )}
+          </FormField>
+        )}
+      </div>
 
       {/* Formulário de Treino */}
-      {usuario.status === "admin" && alunoSelecionadoId && (
-        <form onSubmit={handleSubmitTreino} className="prescription-form">
-          <div className="section">
-            <h3 className="section-title">{editandoTreinoId ? "Editar Treino" : "Novo Treino"}</h3>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Nome do Treino</label>
-                <input className="input" type="text" value={formTreino.nomeTreino} onChange={e => setFormTreino({...formTreino, nomeTreino: e.target.value })} placeholder="Ex: Treino A - Peito" required />
-              </div>
-              <div className="form-group">
-                <label>Descrição</label>
-                <textarea className="input" value={formTreino.descricao} onChange={e => setFormTreino({...formTreino, descricao: e.target.value })} placeholder="Ex: Focar na cadência dos movimentos" rows={3} />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "center" }}>
-              <button type="submit" className="button">{editandoTreinoId ? "Salvar" : "Adicionar Treino"}</button>
-              {editandoTreinoId && (
-                <button type="button" className="button" onClick={() => { setFormTreino({ nomeTreino: "", descricao: "" }); setEditandoTreinoId(null); }} style={{ backgroundColor: "#888" }}>
-                  Cancelar
-                </button>
-              )}
-            </div>
+      {isAdmin && alunoSelecionadoId && (
+        <form onSubmit={handleSubmitTreino} className="theme-card" style={{ marginBottom: 20 }}>
+          <h3 className="section-title">{editandoTreinoId ? "Editar Treino" : "Novo Treino"}</h3>
+          <div className="form-grid-2">
+            <FormField label="Nome do Treino" htmlFor="treino-nome" required>
+              <input id="treino-nome" className="theme-input" type="text" value={formTreino.nomeTreino} onChange={e => setFormTreino({ ...formTreino, nomeTreino: e.target.value })} placeholder="Ex: Treino A - Peito" required />
+            </FormField>
+            <FormField label="Descrição" htmlFor="treino-descricao">
+              <textarea id="treino-descricao" className="theme-textarea" value={formTreino.descricao} onChange={e => setFormTreino({ ...formTreino, descricao: e.target.value })} placeholder="Ex: Focar na cadência dos movimentos" rows={3} />
+            </FormField>
+          </div>
+          <div className="form-actions form-actions-center">
+            <button type="submit" className="btn btn-primary btn-sm">{editandoTreinoId ? "Salvar" : "Adicionar Treino"}</button>
+            {editandoTreinoId && (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setFormTreino({ nomeTreino: "", descricao: "" }); setEditandoTreinoId(null); }}>
+                Cancelar
+              </button>
+            )}
           </div>
         </form>
       )}
 
       {/* Lista de Treinos */}
       {!alunoSelecionadoId ? (
-        <div className="section" style={{ marginTop: 16 }}>
-          <p style={{ textAlign: "center", color: "#666" }}>Selecione um aluno para visualizar os treinos.</p>
+        <div className="theme-card">
+          <p className="empty-state" style={{ margin: 0 }}>Selecione um aluno para visualizar os treinos.</p>
         </div>
       ) : treinos.length === 0 ? (
-        <div className="section" style={{ marginTop: 16 }}>
-          <p style={{ textAlign: "center", color: "#666" }}>Nenhum treino cadastrado para este aluno.</p>
+        <div className="theme-card">
+          <p className="empty-state" style={{ margin: 0 }}>Nenhum treino cadastrado para este aluno.</p>
         </div>
       ) : (
         treinos.map(treino => (
-          <div key={treino.id} className="section" style={{ marginTop: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div key={treino.id} className="theme-card" style={{ marginBottom: 20 }}>
+            <div className="treino-card-head">
               <div>
-                <h3 className="section-title" style={{ marginBottom: 4 }}>{treino.nomeTreino}</h3>
-                {treino.descricao && <p style={{ color: "#555", fontSize: "0.9rem", marginBottom: 12 }}>{treino.descricao}</p>}
+                <h3 className="treino-card-title">{treino.nomeTreino}</h3>
+                {treino.descricao && <p className="treino-card-desc">{treino.descricao}</p>}
               </div>
-              {usuario.status === "admin" && (
-                <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={() => handleEditarTreino(treino)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem" }} title="Editar">✏️</button>
-                  <button onClick={() => handleDeletarTreino(treino.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem" }} title="Excluir">🗑️</button>
+              {isAdmin && (
+                <div className="actions">
+                  <button type="button" className="icon-btn" onClick={() => handleEditarTreino(treino)} aria-label={`Editar ${treino.nomeTreino}`} title="Editar">
+                    <Pencil size={16} aria-hidden="true" />
+                  </button>
+                  <button type="button" className="icon-btn danger" onClick={() => setExcluirTreino(treino.id)} aria-label={`Excluir ${treino.nomeTreino}`} title="Excluir">
+                    <Trash2 size={16} aria-hidden="true" />
+                  </button>
                 </div>
               )}
             </div>
 
             {/* Exercícios */}
             {treino.exercicios && treino.exercicios.length > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+              <div className="table-wrapper">
+                <table className="theme-table">
                   <thead>
-                    <tr style={{ borderBottom: "2px solid #4b1c71", color: "#4b1c71" }}>
-                      <th style={{ padding: "4px 8px", textAlign: "left" }}>Exercício</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center" }}>Séries</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center" }}>Reps</th>
-                      <th style={{ padding: "4px 8px", textAlign: "center" }}>Carga</th>
-                      <th style={{ padding: "4px 8px", textAlign: "left" }}>Obs</th>
-                      {usuario.status === "admin" && <th style={{ padding: "4px 8px", textAlign: "center" }}>Ações</th>}
+                    <tr>
+                      <th>Exercício</th>
+                      <th style={{ textAlign: "center" }}>Séries</th>
+                      <th style={{ textAlign: "center" }}>Reps</th>
+                      <th style={{ textAlign: "center" }}>Carga</th>
+                      <th>Obs</th>
+                      {isAdmin && <th style={{ textAlign: "center" }}>Ações</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {treino.exercicios.map(ex => (
-                      <tr key={ex.id} style={{ borderBottom: "1px solid #ddd" }}>
-                        <td style={{ padding: "4px 8px" }}>{ex.nome}</td>
-                        <td style={{ padding: "4px 8px", textAlign: "center" }}>{ex.series}</td>
-                        <td style={{ padding: "4px 8px", textAlign: "center" }}>{ex.repeticoes}</td>
-                        <td style={{ padding: "4px 8px", textAlign: "center" }}>{ex.carga || "-"}</td>
-                        <td style={{ padding: "4px 8px" }}>{ex.observacao || "-"}</td>
-                        {usuario.status === "admin" && (
-                          <td style={{ padding: "4px 8px", textAlign: "center" }}>
-                            <button onClick={() => handleDeletarExercicio(treino.id, ex.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1rem" }} title="Excluir">🗑️</button>
+                      <tr key={ex.id}>
+                        <td>{ex.nome}</td>
+                        <td style={{ textAlign: "center" }}>{ex.series}</td>
+                        <td style={{ textAlign: "center" }}>{ex.repeticoes}</td>
+                        <td style={{ textAlign: "center" }}>{ex.carga || "—"}</td>
+                        <td>{ex.observacao || "—"}</td>
+                        {isAdmin && (
+                          <td style={{ textAlign: "center" }}>
+                            <button type="button" className="icon-btn danger" onClick={() => setExcluirExercicio({ treinoId: treino.id, exercicioId: ex.id })} aria-label={`Excluir ${ex.nome}`} title="Excluir">
+                              <Trash2 size={15} aria-hidden="true" />
+                            </button>
                           </td>
                         )}
                       </tr>
@@ -254,41 +297,57 @@ export default function Treino() {
             )}
 
             {/* Formulário de Exercício */}
-            {usuario.status === "admin" && (
-              <form onSubmit={(e) => handleSubmitExercicio(e, treino.id)} style={{ marginTop: 12, borderTop: "1px dashed #ccc", paddingTop: 12 }}>
-                <p style={{ fontWeight: "bold", color: "#4b1c71", marginBottom: 8, fontSize: "0.9rem" }}>Adicionar Exercício</p>
-                <div className="form-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-                  <div className="form-group">
-                    <label style={{ fontSize: "0.8rem" }}>Nome</label>
-                    <input className="input" type="text" value={exercicioTreinoId === treino.id ? exercicioForm.nome : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, nome: e.target.value }); }} placeholder="Supino Reto" required />
-                  </div>
-                  <div className="form-group">
-                    <label style={{ fontSize: "0.8rem" }}>Séries</label>
-                    <input className="input" type="number" value={exercicioTreinoId === treino.id ? exercicioForm.series : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, series: e.target.value }); }} placeholder="3" required />
-                  </div>
-                  <div className="form-group">
-                    <label style={{ fontSize: "0.8rem" }}>Repetições</label>
-                    <input className="input" type="number" value={exercicioTreinoId === treino.id ? exercicioForm.repeticoes : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, repeticoes: e.target.value }); }} placeholder="12" required />
-                  </div>
-                  <div className="form-group">
-                    <label style={{ fontSize: "0.8rem" }}>Carga</label>
-                    <input className="input" type="text" value={exercicioTreinoId === treino.id ? exercicioForm.carga : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, carga: e.target.value }); }} placeholder="20kg" />
-                  </div>
-                  <div className="form-group">
-                    <label style={{ fontSize: "0.8rem" }}>Observação</label>
-                    <input className="input" type="text" value={exercicioTreinoId === treino.id ? exercicioForm.observacao : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, observacao: e.target.value }); }} placeholder="45s descanso" />
-                  </div>
+            {isAdmin && (
+              <form onSubmit={(e) => handleSubmitExercicio(e, treino.id)} className="treino-form-divider">
+                <p className="treino-form-title">Adicionar Exercício</p>
+                <div className="treino-exercise-grid">
+                  <FormField label="Nome" htmlFor={`ex-nome-${treino.id}`} required>
+                    <input id={`ex-nome-${treino.id}`} className="theme-input" type="text" value={exercicioTreinoId === treino.id ? exercicioForm.nome : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, nome: e.target.value }); }} placeholder="Supino Reto" required />
+                  </FormField>
+                  <FormField label="Séries" htmlFor={`ex-series-${treino.id}`} required>
+                    <input id={`ex-series-${treino.id}`} className="theme-input" type="number" value={exercicioTreinoId === treino.id ? exercicioForm.series : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, series: e.target.value }); }} placeholder="3" required />
+                  </FormField>
+                  <FormField label="Repetições" htmlFor={`ex-reps-${treino.id}`} required>
+                    <input id={`ex-reps-${treino.id}`} className="theme-input" type="number" value={exercicioTreinoId === treino.id ? exercicioForm.repeticoes : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, repeticoes: e.target.value }); }} placeholder="12" required />
+                  </FormField>
+                  <FormField label="Carga" htmlFor={`ex-carga-${treino.id}`}>
+                    <input id={`ex-carga-${treino.id}`} className="theme-input" type="text" value={exercicioTreinoId === treino.id ? exercicioForm.carga : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, carga: e.target.value }); }} placeholder="20kg" />
+                  </FormField>
+                  <FormField label="Observação" htmlFor={`ex-obs-${treino.id}`}>
+                    <input id={`ex-obs-${treino.id}`} className="theme-input" type="text" value={exercicioTreinoId === treino.id ? exercicioForm.observacao : ""} onChange={e => { setExercicioTreinoId(treino.id); setExercicioForm({ ...exercicioForm, observacao: e.target.value }); }} placeholder="45s descanso" />
+                  </FormField>
                 </div>
-                <button type="submit" className="button" style={{ marginTop: 8, width: "auto", padding: "6px 16px", fontSize: "0.85rem" }}>Adicionar</button>
+                <div className="form-actions" style={{ marginTop: 12 }}>
+                  <button type="submit" className="btn btn-primary btn-sm"><Plus size={14} aria-hidden="true" /> Adicionar</button>
+                </div>
               </form>
             )}
           </div>
         ))
       )}
 
-      <div style={{ textAlign: "center", marginTop: 20 }}>
-        <button className="button" onClick={() => navigate("/perfil")} style={{ backgroundColor: "#888" }}>Voltar ao Perfil</button>
+      <div className="form-actions form-actions-center" style={{ marginTop: 20 }}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate("/perfil")}><ArrowLeft size={14} aria-hidden="true" /> Voltar ao Perfil</button>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={Boolean(excluirTreino)}
+        titulo="Excluir treino"
+        mensagem="Excluir este treino e todos os seus exercícios? Essa ação não pode ser desfeita."
+        rotuloConfirmar="Excluir"
+        processando={excluindo}
+        aoConfirmar={confirmarExclusaoTreino}
+        aoCancelar={() => { if (!excluindo) setExcluirTreino(null); }}
+      />
+      <ConfirmDialog
+        open={Boolean(excluirExercicio)}
+        titulo="Excluir exercício"
+        mensagem="Excluir este exercício? Essa ação não pode ser desfeita."
+        rotuloConfirmar="Excluir"
+        processando={excluindo}
+        aoConfirmar={confirmarExclusaoExercicio}
+        aoCancelar={() => { if (!excluindo) setExcluirExercicio(null); }}
+      />
+    </>
   );
 }

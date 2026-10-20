@@ -61,7 +61,7 @@ export default function Dashboard() {
   return (
     <>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="btn btn-primary btn-sm" onClick={buscarDashboard} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="btn btn-primary btn-sm" onClick={buscarDashboard}>
             <RefreshCw size={14} /> Atualizar
           </button>
         </div>
@@ -192,11 +192,11 @@ export default function Dashboard() {
         <div className="info-card" style={{ marginTop: 24 }}>
           <div className="info-card-header"><Zap size={16} /> Atalhos Rápidos</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn btn-primary btn-sm" onClick={() => navigate('/cadastro')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Users size={14} /> Novo Aluno</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/mensalidades')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><CreditCard size={14} /> Mensalidades</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/financeiro')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><DollarSign size={14} /> Financeiro</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/presenca')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><CalendarCheck size={14} /> Presença (QR)</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/manutencao')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Wrench size={14} /> Manutenção</button>
+            <button className="btn btn-primary btn-sm" onClick={() => navigate('/cadastro')}><Users size={14} /> Novo Aluno</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/mensalidades')}><CreditCard size={14} /> Mensalidades</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/financeiro')}><DollarSign size={14} /> Financeiro</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/presenca')}><CalendarCheck size={14} /> Presença (QR)</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/manutencao')}><Wrench size={14} /> Manutenção</button>
           </div>
         </div>
       </>

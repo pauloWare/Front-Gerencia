@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 import {
   LayoutDashboard, Users, UserCog, CreditCard, QrCode,
   Wallet, Wrench, BarChart3, User, LogOut, ChevronDown, ChevronRight,
@@ -9,7 +10,7 @@ import { useRole } from "../../lib/useRole";
 import { hasPermission } from "../../lib/permissions";
 import { logout } from "../../lib/auth";
 
-export default function Sidebar() {
+export default function Sidebar({ aberto = false, aoFechar = () => {} }) {
   const navigate = useNavigate();
   const [openSubmenu, setOpenSubmenu] = React.useState(false);
   const { role, setRole } = useRole();
@@ -34,7 +35,7 @@ export default function Sidebar() {
 
   const subLinks = [
     { to: "/equipamentos", label: "Equipamentos", icon: Dumbbell },
-    { to: "/manutencao", label: "Tickets", icon: Wrench },
+    { to: "/manutencao", label: "Manutenção", icon: Wrench },
     { to: "/historico-chamados", label: "Histórico de Chamados", icon: History },
   ];
 
@@ -42,47 +43,51 @@ export default function Sidebar() {
 
   // "Solicitar Manutenção" — disponível para ADMIN, TÉCNICO e RECEPCIONISTA
   const recepcaoLinks = [
-  { to: "/solicitar-manutencao", label: "Solicitar Manutenção", icon: ClipboardList },
-  { to: "/presenca", label: "Presença do dia", icon: QrCode },
-  { to: "/perfil", label: "Perfil", icon: User },
-];
+    { to: "/solicitar-manutencao", label: "Solicitar Manutenção", icon: ClipboardList },
+    { to: "/presenca", label: "Presença do dia", icon: QrCode },
+  ];
 
 
 
-  // O submenu "Tickets" aparece somente se o cargo possui algum módulo de
+  // O submenu "Manutenção" aparece somente se o cargo possui algum módulo de
   // manutenção (ex.: TÉCNICO e ADMIN). FINANCEIRO/RECEPCIONISTA não veem.
   const temModuloManutencao = role
     ? subLinks.some((l) => hasPermission(role, l.to.split("/")[1]))
     : false;
 
-  // A seção "Recepção" (Solicitar Manutenção) depende da permissão, e não do
-  // nome do cargo, cobrindo ADMIN, TÉCNICO e RECEPCIONISTA (não FINANCEIRO).
-  const podeSolicitarManutencao = role
-    ? hasPermission(role, "solicitar-manutencao")
-    : false;
+  // Cada link é filtrado individualmente por permissão (mesma regra do
+  // ProtectedRoute). A seção Recepção só aparece se algum link for visível.
+  const linkPermitido = (link) => {
+    const modulo = link.to.split("/")[1] || "dashboard";
+    return role ? hasPermission(role, modulo) : true;
+  };
+  const recepcaoVisiveis = recepcaoLinks.filter(linkPermitido);
 
   const renderLink = (link, extraClass = "") => {
-    const module = link.to.split("/")[1] || "dashboard";
-    const isAllowed = role ? hasPermission(role, module) : true;
-    if (!isAllowed) return null;
+    if (!linkPermitido(link)) return null;
     return (
       <NavLink
         key={link.to}
         to={link.to}
+        onClick={aoFechar}
         className={({ isActive }) =>
           `sidebar-link ${isActive ? "active" : ""} ${extraClass}`
         }
       >
-        <link.icon size={18} strokeWidth={1.8} />
+        <link.icon size={18} strokeWidth={1.8} aria-hidden="true" />
         <span>{link.label}</span>
       </NavLink>
     );
   };
 
   return (
-    <aside className="sidebar">
+    <aside
+      className={`sidebar ${aberto ? "is-open" : ""}`}
+      id="menu-lateral"
+      aria-label="Menu de navegação"
+    >
       <div className="sidebar-brand">
-        <div className="sidebar-logo">
+        <div className="sidebar-logo" aria-hidden="true">
           <Dumbbell size={22} strokeWidth={2.5} />
         </div>
         <div className="sidebar-brand-text">
@@ -91,7 +96,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" aria-label="Principal">
         <div className="sidebar-section-label">Principal</div>
         {mainLinks.map(renderLink)}
 
@@ -99,28 +104,31 @@ export default function Sidebar() {
 
         {temModuloManutencao && (
           <button
+            type="button"
             className="sidebar-link sidebar-submenu-toggle"
+            aria-expanded={openSubmenu}
+            aria-controls="submenu-manutencao"
             onClick={() => setOpenSubmenu(!openSubmenu)}
           >
-            <Wrench size={18} strokeWidth={1.8} />
+            <Wrench size={18} strokeWidth={1.8} aria-hidden="true" />
             <span>Manutenção</span>
             {openSubmenu ? (
-              <ChevronDown size={14} className="sidebar-chevron" />
+              <ChevronDown size={14} className="sidebar-chevron" aria-hidden="true" />
             ) : (
-              <ChevronRight size={14} className="sidebar-chevron" />
+              <ChevronRight size={14} className="sidebar-chevron" aria-hidden="true" />
             )}
           </button>
         )}
 
         {openSubmenu && temModuloManutencao && (
-          <div className="sidebar-submenu">
+          <div className="sidebar-submenu" id="submenu-manutencao">
             {subLinks.map(renderLink)}
           </div>
         )}
       </nav>
 
       <div className="sidebar-footer">
-        {podeSolicitarManutencao && (
+        {recepcaoVisiveis.length > 0 && (
           <>
             <div className="sidebar-divider" />
             <div className="sidebar-section-label">Recepção</div>
@@ -128,11 +136,23 @@ export default function Sidebar() {
           </>
         )}
 
-        <button className="sidebar-link sidebar-logout" onClick={handleLogout}>
-          <LogOut size={18} strokeWidth={1.8} />
+        {/* Perfil é acessível a todos os perfis autenticados (lib/permissions.js) */}
+        {renderLink({ to: "/perfil", label: "Perfil", icon: User })}
+
+        <button
+          type="button"
+          className="sidebar-link sidebar-logout"
+          onClick={handleLogout}
+        >
+          <LogOut size={18} strokeWidth={1.8} aria-hidden="true" />
           <span>Sair</span>
         </button>
       </div>
     </aside>
   );
 }
+
+Sidebar.propTypes = {
+  aberto: PropTypes.bool,
+  aoFechar: PropTypes.func,
+};

@@ -21,6 +21,7 @@ export default function Cadastro() {
         idAluno={id}
         modo="pagina"
         formId="aluno-form-pagina"
+        onCancelar={() => navigate('/alunos')}
         onSucesso={(aluno, infoAtivacao) => {
           const esperaLeitura = Boolean(infoAtivacao?.codigo || infoAtivacao?.aviso);
           setTimeout(() => navigate('/alunos'), esperaLeitura ? 15000 : 1500);

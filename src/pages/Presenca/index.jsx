@@ -71,7 +71,6 @@ export default function Presenca() {
         <button
           className="btn btn-secondary btn-sm"
           onClick={carregarToken}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
           <RefreshCw size={14} /> Atualizar QR
         </button>

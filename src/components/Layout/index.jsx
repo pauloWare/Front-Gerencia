@@ -1,6 +1,8 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Fragment, useEffect, useState } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
+import { PageInfoProvider } from "../../lib/pageInfoProvider";
 import {
   LayoutDashboard, Users, UserCog, CreditCard, QrCode,
   Wallet, BarChart3, User, Dumbbell, Wrench, ClipboardList, History, TrendingUp
@@ -11,7 +13,6 @@ const pageConfig = {
   "/alunos": { title: "Alunos", subtitle: "Gerenciamento de matrículas e alunos", icon: Users },
   "/funcionarios": { title: "Funcionários", subtitle: "Equipe administrativa e operacional", icon: UserCog },
   "/mensalidades": { title: "Mensalidades", subtitle: "Controle de pagamentos e vencimentos", icon: CreditCard },
-  
   "/financeiro": { title: "Financeiro", subtitle: "Receitas, despesas e saldo do período", icon: Wallet },
   "/historico-faturamento": { title: "Histórico de Faturamento", subtitle: "Evolução do faturamento ao longo do tempo", icon: TrendingUp },
   "/relatorios": { title: "Relatórios", subtitle: "Indicadores e métricas da academia", icon: BarChart3 },
@@ -26,47 +27,89 @@ const pageConfig = {
 
 export default function Layout() {
   const location = useLocation();
-  const config = pageConfig[location.pathname] || pageConfig["/dashboard"];
+  const [menuAberto, setMenuAberto] = useState(false);
+
+  // Fecha a gaveta do menu ao navegar (mantém previsível em telas pequenas)
+  useEffect(() => {
+    setMenuAberto(false);
+  }, [location.pathname]);
+
+  // Esc fecha a gaveta aberta (navegação por teclado)
+  useEffect(() => {
+    const aoPressionar = (e) => {
+      if (e.key === "Escape") setMenuAberto(false);
+    };
+    window.addEventListener("keydown", aoPressionar);
+    return () => window.removeEventListener("keydown", aoPressionar);
+  }, []);
+
+  // Rota /cadastro?id=NN é edição: título/breadcrumb/subtítulo específicos
+  // (o subtítulo dinâmico vem do formulário via PageInfoProvider).
+  const editandoAluno = location.pathname === "/cadastro" && new URLSearchParams(location.search).has("id");
+  const [subtituloDinamico, setSubtituloDinamico] = useState(null);
+  const configBase = pageConfig[location.pathname] || pageConfig["/dashboard"];
+  const config = editandoAluno
+    ? { title: "Editar aluno", subtitle: subtituloDinamico || "Carregando...", icon: Users }
+    : configBase;
 
   const pathParts = location.pathname.split("/").filter(Boolean);
-  const breadcrumbs = pathParts.map((part, idx) => ({
-    label: idx === 0 ? config?.title || part : part,
-    path: "/" + pathParts.slice(0, idx + 1).join("/"),
-    isLast: idx === pathParts.length - 1,
-  }));
+  const breadcrumbs = editandoAluno
+    ? [
+        { label: "Alunos", path: "/alunos", isLast: false },
+        { label: "Editar", path: "/cadastro", isLast: true },
+      ]
+    : pathParts.map((part, idx) => ({
+        label: idx === 0 ? config?.title || part : part,
+        path: "/" + pathParts.slice(0, idx + 1).join("/"),
+        isLast: idx === pathParts.length - 1,
+      }));
 
   const Icon = config?.icon || LayoutDashboard;
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <a className="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
+      <Sidebar aberto={menuAberto} aoFechar={() => setMenuAberto(false)} />
+      {menuAberto && (
+        <button
+          type="button"
+          className="sidebar-overlay"
+          aria-label="Fechar menu de navegação"
+          onClick={() => setMenuAberto(false)}
+        />
+      )}
       <div className="app-main">
-        <Header />
-        <div className="page-container">
+        <Header
+          menuAberto={menuAberto}
+          aoAlternarMenu={() => setMenuAberto((aberto) => !aberto)}
+        />
+        <main className="page-container" id="conteudo-principal">
           <div className="page-header">
             <div>
-              <div className="breadcrumb">
-                <a href="/dashboard">Início</a>
+              <nav className="breadcrumb" aria-label="Navegação estrutural">
+                <Link to="/dashboard">Início</Link>
                 {breadcrumbs.map((crumb) => (
-                  <>
-                    <span className="sep">&nbsp;/&nbsp;</span>
+                  <Fragment key={crumb.path}>
+                    <span className="sep" aria-hidden="true">/</span>
                     {crumb.isLast ? (
-                      <span>{crumb.label}</span>
+                      <span aria-current="page">{crumb.label}</span>
                     ) : (
-                      <a href={crumb.path}>{crumb.label}</a>
+                      <Link to={crumb.path}>{crumb.label}</Link>
                     )}
-                  </>
+                  </Fragment>
                 ))}
-              </div>
+              </nav>
               <div className="page-title-row">
-                <Icon size={22} className="page-title-icon" strokeWidth={1.8} />
+                <Icon size={22} className="page-title-icon" strokeWidth={1.8} aria-hidden="true" />
                 <h1>{config?.title || "Dashboard"}</h1>
               </div>
               <p className="page-subtitle">{config?.subtitle || ""}</p>
             </div>
           </div>
-          <Outlet />
-        </div>
+          <PageInfoProvider subtitulo={subtituloDinamico} onSubtituloChange={setSubtituloDinamico}>
+            <Outlet />
+          </PageInfoProvider>
+        </main>
       </div>
     </div>
   );

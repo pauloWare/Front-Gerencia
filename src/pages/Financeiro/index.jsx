@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from '../../service/api';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { FormField } from '../../components/ui/field';
 import { MoneyInput } from '../../components/ui/money-input';
 import { DateInput } from '../../components/ui/date-input';
-import { TrendingUp, TrendingDown, Plus, History, AlertCircle, X, PiggyBank } from 'lucide-react';
+import { TrendingUp, TrendingDown, Plus, History, AlertCircle, CheckCircle2, X, PiggyBank, Trash2 } from 'lucide-react';
 import { formatDate } from '../../lib/dateUtils';
 
 const obterDataHoje = () => {
@@ -28,6 +29,11 @@ export default function Financeiro() {
   const [novaDespesa, setNovaDespesa] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  // Feedback de exclusão no topo da página (o `erro` dos modais continua independente)
+  const [excluir, setExcluir] = useState(null); // { tipo: 'receita' | 'despesa', item }
+  const [excluindo, setExcluindo] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState('');
+  const [sucessoExclusao, setSucessoExclusao] = useState('');
   const [formReceita, setFormReceita] = useState({ tipo: 'OUTROS', descricao: '', valor: '', data: obterDataHoje() });
   const [formDespesa, setFormDespesa] = useState({ tipo: 'OUTROS', classificacao: 'FIXO', descricao: '', valor: '', data: obterDataHoje() });
   const [errosReceita, setErrosReceita] = useState({});
@@ -56,27 +62,33 @@ export default function Financeiro() {
     }
   };
 
-  const handleDeleteReceita = async (id) => {
-    if (window.confirm('Deseja excluir esta receita?')) {
-      try {
-        await api.delete(`/financeiro/receitas/${id}`);
-        buscarDados();
-      } catch (error) {
-        const msg = error.response?.data?.erro || error.response?.data?.error || 'Erro ao excluir receita.';
-        setErro(`❌ ${msg}`);
-      }
-    }
+  const solicitarExclusao = (tipo, item) => {
+    setErroExclusao('');
+    setSucessoExclusao('');
+    setExcluir({ tipo, item });
   };
 
-  const handleDeleteDespesa = async (id) => {
-    if (window.confirm('Deseja excluir esta despesa?')) {
-      try {
-        await api.delete(`/financeiro/despesas/${id}`);
-        buscarDados();
-      } catch (error) {
-        const msg = error.response?.data?.erro || error.response?.data?.error || 'Erro ao excluir despesa.';
-        setErro(`❌ ${msg}`);
+  const confirmarExclusao = async () => {
+    if (!excluir) return;
+    setExcluindo(true);
+    setErroExclusao('');
+    try {
+      if (excluir.tipo === 'receita') {
+        await api.delete(`/financeiro/receitas/${excluir.item.id}`);
+        setSucessoExclusao('Receita excluída com sucesso.');
+      } else {
+        await api.delete(`/financeiro/despesas/${excluir.item.id}`);
+        setSucessoExclusao('Despesa excluída com sucesso.');
       }
+      setExcluir(null);
+      buscarDados();
+    } catch (error) {
+      const msg = error.response?.data?.erro || error.response?.data?.error
+        || (excluir.tipo === 'receita' ? 'Erro ao excluir receita.' : 'Erro ao excluir despesa.');
+      setErroExclusao(msg);
+      setExcluir(null);
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -145,6 +157,17 @@ export default function Financeiro() {
 
   return (
     <>
+      {erroExclusao && (
+        <div className="form-message error" style={{ marginBottom: 16 }} role="alert">
+          <AlertCircle size={16} /> {erroExclusao}
+        </div>
+      )}
+      {sucessoExclusao && (
+        <div className="form-message success" style={{ marginBottom: 16 }} role="status">
+          <CheckCircle2 size={16} /> {sucessoExclusao}
+        </div>
+      )}
+
       {/* Resumo financeiro (cálculo dos indicadores no backend) */}
       <div className="finance-summary">
         <div className="finance-card">
@@ -179,11 +202,11 @@ export default function Financeiro() {
         <div className="toolbar-left">
           <span className="record-count">{receitas.length} receita{receitas.length !== 1 ? 's' : ''} · {despesas.length} despesa{despesas.length !== 1 ? 's' : ''}</span>
         </div>
-        <div className="toolbar-right" style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => { setNovaDespesa(true); setErro(''); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="toolbar-right">
+          <button className="btn btn-secondary btn-sm" onClick={() => { setNovaDespesa(true); setErro(''); }}>
             <Plus size={14} /> Nova Despesa
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => { setNovaReceita(true); setErro(''); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="btn btn-primary btn-sm" onClick={() => { setNovaReceita(true); setErro(''); }}>
             <Plus size={14} /> Nova Receita
           </button>
         </div>
@@ -207,7 +230,9 @@ export default function Financeiro() {
                     <td><strong style={{ color: 'var(--success)' }}>R$ {Number(r.valor).toFixed(2)}</strong></td><td className="date-friendly">{formatDate(r.data) || '—'}</td>
                     <td>{r.aluno?.nome || '-'}</td>
                     <td><div className="actions">
-                      <button onClick={() => handleDeleteReceita(r.id)} className="btn btn-danger btn-xs">Excluir</button>
+                      <button onClick={() => solicitarExclusao('receita', r)} className="btn btn-danger btn-xs" aria-label={`Excluir receita ${r.descricao || r.id}`}>
+                        <Trash2 size={12} /> Excluir
+                      </button>
                     </div></td>
                   </tr>
                 ))
@@ -238,7 +263,9 @@ export default function Financeiro() {
                     <td><span className={`status-badge ${d.classificacao}`}>{d.classificacao || 'Não classificada'}</span></td>
                     <td><strong style={{ color: 'var(--danger)' }}>R$ {Number(d.valor).toFixed(2)}</strong></td><td className="date-friendly">{formatDate(d.data) || '—'}</td>
                     <td><div className="actions">
-                      <button onClick={() => handleDeleteDespesa(d.id)} className="btn btn-danger btn-xs">Excluir</button>
+                      <button onClick={() => solicitarExclusao('despesa', d)} className="btn btn-danger btn-xs" aria-label={`Excluir despesa ${d.descricao || d.id}`}>
+                        <Trash2 size={12} /> Excluir
+                      </button>
                     </div></td>
                   </tr>
                 ))
@@ -310,10 +337,10 @@ export default function Financeiro() {
             </div>
             {erro && <div className="form-message error" style={{ marginBottom: 0 }}><AlertCircle size={14} /> {erro}</div>}
             <DialogFooter className="dialog-footer">
-              <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setNovaDespesa(false)}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNovaDespesa(false)}>
                 <X size={14} /> Cancelar
               </button>
-              <button type="submit" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={salvando}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={salvando}>
                 <PiggyBank size={14} /> {salvando ? 'Salvando...' : 'Salvar despesa'}
               </button>
             </DialogFooter>
@@ -349,16 +376,31 @@ export default function Financeiro() {
             </div>
             {erro && <div className="form-message error" style={{ marginBottom: 0 }}><AlertCircle size={14} /> {erro}</div>}
             <DialogFooter className="dialog-footer">
-              <button type="button" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setNovaReceita(false)}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNovaReceita(false)}>
                 <X size={14} /> Cancelar
               </button>
-              <button type="submit" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={salvando}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={salvando}>
                 <TrendingUp size={14} /> {salvando ? 'Salvando...' : 'Salvar receita'}
               </button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Exclusão de receita/despesa — confirmação padronizada */}
+      <ConfirmDialog
+        open={!!excluir}
+        titulo={excluir?.tipo === 'receita' ? 'Excluir receita' : 'Excluir despesa'}
+        mensagem={
+          excluir
+            ? `${excluir.tipo === 'receita' ? 'Deseja excluir esta receita?' : 'Deseja excluir esta despesa?'} Essa ação não pode ser desfeita.`
+            : ''
+        }
+        rotuloConfirmar="Excluir"
+        processando={excluindo}
+        aoConfirmar={confirmarExclusao}
+        aoCancelar={() => setExcluir(null)}
+      />
     </>
   );
 }

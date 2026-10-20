@@ -23,3 +23,32 @@ export function estadoInicialAlunoForm() {
     endereco: '', contatoEmergencia: '',
   };
 }
+
+/** Chave de comparação de texto: sem acento e sem caixa. */
+const chaveTexto = (valor) =>
+  String(valor || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
+/**
+ * Diz se um plano é o "mensal": nome contém "mensal" e não contém
+ * "trimestral/semestral/anual". Duração 30 dias e valor 120 servem de
+ * critério de apoio quando o plano traz esses campos.
+ */
+export function ehPlanoMensal(plano) {
+  if (!plano) return false;
+  const nome = chaveTexto(plano.nome);
+  if (!nome.includes('mensal')) return false;
+  if (nome.includes('trimestral') || nome.includes('semestral') || nome.includes('anual')) {
+    return false;
+  }
+  if (plano.duracao != null && Number(plano.duracao) !== 30) return false;
+  if (plano.valor != null && Number(plano.valor) !== 120) return false;
+  return true;
+}
+
+/** Primeiro plano mensal de uma lista (ou null, se nenhum atender). */
+export function encontrarPlanoMensal(planos) {
+  return (planos || []).find(ehPlanoMensal) || null;
+}

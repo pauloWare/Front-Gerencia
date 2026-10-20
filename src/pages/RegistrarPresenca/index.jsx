@@ -131,7 +131,7 @@ export default function RegistrarPresenca() {
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={trocarAluno}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8 }}
+              style={{ marginTop: 8 }}
             >
               <LogOut size={14} /> Trocar aluno
             </button>
@@ -150,7 +150,6 @@ export default function RegistrarPresenca() {
                   type="submit"
                   className="btn btn-primary btn-sm"
                   disabled={salvando}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
                   <UserCheck size={14} /> {salvando ? 'Registrando...' : 'Registrar presença'}
                 </button>
@@ -158,7 +157,6 @@ export default function RegistrarPresenca() {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={trocarAluno}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
                   <LogOut size={14} /> Trocar aluno
                 </button>
@@ -181,7 +179,6 @@ export default function RegistrarPresenca() {
                   type="submit"
                   className="btn btn-primary btn-sm"
                   disabled={salvando}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
                   <UserCheck size={14} /> {salvando ? 'Registrando...' : 'Registrar presença'}
                 </button>

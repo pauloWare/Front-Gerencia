@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import PropTypes from "prop-types";
+import { LogOut, Menu, X } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { useRole } from "../../lib/useRole";
@@ -24,7 +25,7 @@ const cargoLabel = (cargo) => {
   }
 };
 
-export default function Header() {
+export default function Header({ menuAberto = false, aoAlternarMenu = () => {} }) {
   const navigate = useNavigate();
   const { setRole } = useRole();
 
@@ -61,6 +62,16 @@ export default function Header() {
   return (
     <header className="app-header">
       <div className="app-header-left">
+        <button
+          type="button"
+          className="app-header-menu"
+          onClick={aoAlternarMenu}
+          aria-expanded={menuAberto}
+          aria-controls="menu-lateral"
+          aria-label={menuAberto ? "Fechar menu de navegação" : "Abrir menu de navegação"}
+        >
+          {menuAberto ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+        </button>
         <span className="app-header-date">{dataAtual}</span>
       </div>
       <div className="app-header-right">
@@ -78,11 +89,17 @@ export default function Header() {
           size="icon"
           onClick={handleLogout}
           className="app-header-logout"
-          title="Sair"
+          title="Sair do sistema"
+          aria-label="Sair do sistema"
         >
-          <LogOut size={16} />
+          <LogOut size={16} aria-hidden="true" />
         </Button>
       </div>
     </header>
   );
 }
+
+Header.propTypes = {
+  menuAberto: PropTypes.bool,
+  aoAlternarMenu: PropTypes.func,
+};

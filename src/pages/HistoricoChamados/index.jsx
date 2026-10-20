@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../service/api';
 import { History, CheckCircle2, Loader, Timer, AlertTriangle, Clock3 } from 'lucide-react';
 import { DateInput } from '../../components/ui/date-input';
-import { formatDate, formatDateTime, formatTime } from '../../lib/dateUtils';
+import { formatDate, formatDateTime, formatTime, hojeISO } from '../../lib/dateUtils';
 
 const rotuloPrioridade = { URGENTE: 'Urgente', BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica' };
 const rotuloStatusChamado = { ABERTO: 'Aberto', EM_ANDAMENTO: 'Em andamento', FINALIZADO: 'Finalizado' };
@@ -24,8 +24,6 @@ const SLA_OPCOES = [
   'DENTRO_PRAZO', 'PROXIMO_VENCIMENTO', 'SLA_VENCIDO',
   'CONCLUIDO_DENTRO_SLA', 'CONCLUIDO_APOS_SLA', 'CONCLUIDO', 'SEM_SLA',
 ];
-
-const hojeISO = () => new Date().toISOString().slice(0, 10);
 
 // RODADA 5: "Esteira 01" -> "Esteira" — mesma regra da tela de Equipamentos,
 // usada para agrupar unidades do mesmo tipo no filtro de equipamento.

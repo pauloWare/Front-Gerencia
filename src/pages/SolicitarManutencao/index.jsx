@@ -4,7 +4,7 @@ import { FormField } from '../../components/ui/field';
 import { DateInput } from '../../components/ui/date-input';
 import { TimeInput } from '../../components/ui/time-input';
 import { UploadInput } from '../../components/ui/upload-input';
-import { ClipboardList, Wrench, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Wrench, Image, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const obterDataHoje = () => {
   const h = new Date();
@@ -143,45 +143,24 @@ export default function SolicitarManutencao() {
         </div>
       )}
 
-      <div className="info-card" style={{ maxWidth: 800, margin: '0 auto' }}>
-        <div className="info-card-header">
-          <ClipboardList size={18} /> Solicitar Manutenção
-        </div>
-        <p className="dialog-description" style={{ marginTop: 4 }}>
-          Preencha os dados abaixo para enviar uma solicitação de manutenção para a equipe técnica.
-        </p>
+      
 
-        <form onSubmit={handleSubmit} className="theme-form">
-          {/* Equipamento */}
-          <div className="form-section">
-            <h3 className="section-title"><Wrench size={16} /> Informações do Equipamento</h3>
-            <FormField label="Equipamento / Aparelho" required error={erros.equipamentoId}>
-              <select
-                className="theme-select"
-                value={form.equipamentoId}
-                onChange={(e) => setForm({ ...form, equipamentoId: e.target.value })}
-              >
-                <option value="">Selecione o equipamento</option>
-                {equipamentos.map(eq => (
-                  <option key={eq.id} value={eq.id}>{eq.nome} {eq.marca ? '- ' + eq.marca : ''} {eq.localizacao ? '(' + eq.localizacao + ')' : ''}</option>
-                ))}
-              </select>
-            </FormField>
-
-            <div className="form-grid-3">
-              <FormField label="Data" required htmlFor="sm-data">
-                <DateInput
-                  id="sm-data"
-                  value={form.data}
-                  onChange={(e) => setForm({ ...form, data: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Horário" htmlFor="sm-hora">
-                <TimeInput
-                  id="sm-hora"
-                  value={form.hora}
-                  onChange={(e) => setForm({ ...form, hora: e.target.value })}
-                />
+        <form onSubmit={handleSubmit} className="solicitar-form">
+          {/* Dados da solicitação (duas colunas em desktop) */}
+          <div className="form-group">
+            <p className="form-group-title"><Wrench size={14} /> Dados da solicitação</p>
+            <div className="form-grid-2">
+              <FormField label="Equipamento / Aparelho" required error={erros.equipamentoId}>
+                <select
+                  className="theme-select"
+                  value={form.equipamentoId}
+                  onChange={(e) => setForm({ ...form, equipamentoId: e.target.value })}
+                >
+                  <option value="">Selecione o equipamento</option>
+                  {equipamentos.map(eq => (
+                    <option key={eq.id} value={eq.id}>{eq.nome} {eq.marca ? '- ' + eq.marca : ''} {eq.localizacao ? '(' + eq.localizacao + ')' : ''}</option>
+                  ))}
+                </select>
               </FormField>
               <FormField label="Prioridade" required>
                 <select
@@ -194,16 +173,31 @@ export default function SolicitarManutencao() {
                   ))}
                 </select>
               </FormField>
-              {/* RODADA 1: SLA apenas informativo, calculado pelo backend. */}
-              <FormField label="SLA (prazo)" hint="Definido pelo sistema">
+              <FormField label="Data" required>
+                <DateInput
+                  id="sm-data"
+                  value={form.data}
+                  onChange={(e) => setForm({ ...form, data: e.target.value })}
+                />
+              </FormField>
+              <FormField label="Horário">
+                <TimeInput
+                  id="sm-hora"
+                  value={form.hora}
+                  onChange={(e) => setForm({ ...form, hora: e.target.value })}
+                />
+              </FormField>
+            </div>
+            <div className="sla-row">
+              <FormField label="SLA (prazo)" hint="Definido pelo sistema a partir da prioridade.">
                 <input className="theme-input" type="text" value={textoSla(form.prioridade)} readOnly disabled />
               </FormField>
             </div>
           </div>
 
-          {/* Problema */}
-          <div className="form-section">
-            <h3 className="section-title"><ClipboardList size={16} /> Informações do Problema</h3>
+          {/* Descrição do problema (largura total) */}
+          <div className="form-group">
+            <p className="form-group-title"><ClipboardList size={14} /> Descrição do problema</p>
             <FormField label="Descrição do Problema" required error={erros.problema}>
               <textarea
                 className="theme-textarea"
@@ -215,13 +209,10 @@ export default function SolicitarManutencao() {
             </FormField>
           </div>
 
-          {/* Anexo */}
-          <div className="form-section">
-            <h3 className="section-title"><ClipboardList size={16} /> Anexo</h3>
-            <FormField
-              label="Imagem do Equipamento (opcional)"
-              hint="Ilustre o problema para facilitar o atendimento."
-            >
+          {/* Anexo (opcional, largura total) */}
+          <div className="form-group">
+            <p className="form-group-title"><Image size={14} /> Anexo (opcional)</p>
+            <FormField label="Imagem do Equipamento" hint="Ilustre o problema para facilitar o atendimento.">
               <UploadInput
                 id="upload-imagem"
                 onChange={handleImagemChange}
@@ -229,6 +220,18 @@ export default function SolicitarManutencao() {
                 onRemove={removerImagem}
               />
             </FormField>
+            {previewImagem && (
+              <div className="preview-thumb">
+                <img src={previewImagem} alt="Pré-visualização da imagem" />
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-xs"
+                  onClick={removerImagem}
+                >
+                  Remover
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="form-actions">
@@ -255,13 +258,11 @@ export default function SolicitarManutencao() {
               type="submit"
               className="btn btn-primary btn-sm"
               disabled={salvando}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Send size={14} /> {salvando ? 'Enviando...' : 'Enviar Solicitação'}
             </button>
           </div>
         </form>
-      </div>
     </>
   );
 }

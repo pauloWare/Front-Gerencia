@@ -23,10 +23,20 @@ export function formatCpf(value) {
   return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9)}`;
 }
 
-/**
- * Formata um número com separador de milhar e casas decimais, ex.: 1.500,00.
- * Sem o símbolo da moeda.
- */
+/** Formata telefone em (XX) XXXXX-XXXX (11 dígitos) ou (XX) XXXX-XXXX (10 dígitos). Vazio devolve '' e outros formatos devolvem o valor original. */
+export function formatTelefone(value) {
+  if (value == null || String(value).trim() === '') return '';
+  const digitos = String(value).replace(/\D/g, '');
+  if (digitos.length === 11) {
+    return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
+  }
+  if (digitos.length === 10) {
+    return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`;
+  }
+  return String(value);
+}
+
+/** Formata um número com separador de milhar e casas decimais, ex.: 1.500,00. */
 export function formatNumber(value, decimals = 2) {
   const n = Number(value);
   if (Number.isNaN(n)) return '';
